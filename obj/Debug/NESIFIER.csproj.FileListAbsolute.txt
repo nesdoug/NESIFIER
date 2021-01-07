@@ -1,0 +1,11 @@
+C:\Users\User\source\repos\NESIFIER\bin\Debug\NESIFIER.exe.config
+C:\Users\User\source\repos\NESIFIER\bin\Debug\NESIFIER.exe
+C:\Users\User\source\repos\NESIFIER\bin\Debug\NESIFIER.pdb
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.csprojAssemblyReference.cache
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.Form1.resources
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.Properties.Resources.resources
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.Resource1.resources
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.csproj.GenerateResource.cache
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.csproj.CoreCompileInputs.cache
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.exe
+C:\Users\User\source\repos\NESIFIER\obj\Debug\NESIFIER.pdb
