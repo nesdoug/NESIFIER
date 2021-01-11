@@ -41,6 +41,8 @@
             this.exportRGBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportNESToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveNESAsTXTToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.infoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.pictureBox3 = new System.Windows.Forms.PictureBox();
@@ -77,8 +79,7 @@
             this.label19 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.button8 = new System.Windows.Forms.Button();
-            this.infoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -137,14 +138,14 @@
             // saveAsCHRToolStripMenuItem
             // 
             this.saveAsCHRToolStripMenuItem.Name = "saveAsCHRToolStripMenuItem";
-            this.saveAsCHRToolStripMenuItem.Size = new System.Drawing.Size(191, 22);
+            this.saveAsCHRToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
             this.saveAsCHRToolStripMenuItem.Text = "Save as CHR";
             this.saveAsCHRToolStripMenuItem.Click += new System.EventHandler(this.saveAsCHRToolStripMenuItem_Click);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(191, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -163,28 +164,28 @@
             // importRGBToolStripMenuItem
             // 
             this.importRGBToolStripMenuItem.Name = "importRGBToolStripMenuItem";
-            this.importRGBToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.importRGBToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
             this.importRGBToolStripMenuItem.Text = "Load RGB";
             this.importRGBToolStripMenuItem.Click += new System.EventHandler(this.importRGBToolStripMenuItem_Click);
             // 
             // importNESToolStripMenuItem
             // 
             this.importNESToolStripMenuItem.Name = "importNESToolStripMenuItem";
-            this.importNESToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.importNESToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
             this.importNESToolStripMenuItem.Text = "Load NES";
             this.importNESToolStripMenuItem.Click += new System.EventHandler(this.importNESToolStripMenuItem_Click);
             // 
             // exportRGBToolStripMenuItem
             // 
             this.exportRGBToolStripMenuItem.Name = "exportRGBToolStripMenuItem";
-            this.exportRGBToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.exportRGBToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
             this.exportRGBToolStripMenuItem.Text = "Save RGB";
             this.exportRGBToolStripMenuItem.Click += new System.EventHandler(this.exportRGBToolStripMenuItem_Click);
             // 
             // exportNESToolStripMenuItem
             // 
             this.exportNESToolStripMenuItem.Name = "exportNESToolStripMenuItem";
-            this.exportNESToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.exportNESToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
             this.exportNESToolStripMenuItem.Text = "Save NES";
             this.exportNESToolStripMenuItem.Click += new System.EventHandler(this.exportNESToolStripMenuItem_Click);
             // 
@@ -194,6 +195,21 @@
             this.saveNESAsTXTToolStripMenuItem.Size = new System.Drawing.Size(164, 22);
             this.saveNESAsTXTToolStripMenuItem.Text = "NES to Clipboard";
             this.saveNESAsTXTToolStripMenuItem.Click += new System.EventHandler(this.saveNESAsTXTToolStripMenuItem_Click);
+            // 
+            // infoToolStripMenuItem
+            // 
+            this.infoToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.aboutToolStripMenuItem});
+            this.infoToolStripMenuItem.Name = "infoToolStripMenuItem";
+            this.infoToolStripMenuItem.Size = new System.Drawing.Size(40, 20);
+            this.infoToolStripMenuItem.Text = "Info";
+            // 
+            // aboutToolStripMenuItem
+            // 
+            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.aboutToolStripMenuItem.Text = "About";
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // pictureBox1
             // 
@@ -347,7 +363,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(326, 218);
+            this.label2.Location = new System.Drawing.Point(324, 216);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(80, 13);
             this.label2.TabIndex = 16;
@@ -375,7 +391,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(27, 50);
+            this.label5.Location = new System.Drawing.Point(27, 59);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(59, 13);
             this.label5.TabIndex = 19;
@@ -383,7 +399,7 @@
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(92, 47);
+            this.textBox1.Location = new System.Drawing.Point(92, 56);
             this.textBox1.MaxLength = 2;
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(36, 20);
@@ -524,7 +540,7 @@
             this.comboBox1.Items.AddRange(new object[] {
             "Floyd Steinberg",
             "Bayer8 Positioned"});
-            this.comboBox1.Location = new System.Drawing.Point(165, 46);
+            this.comboBox1.Location = new System.Drawing.Point(165, 55);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(121, 21);
             this.comboBox1.TabIndex = 37;
@@ -532,7 +548,7 @@
             // 
             // button8
             // 
-            this.button8.Location = new System.Drawing.Point(30, 76);
+            this.button8.Location = new System.Drawing.Point(30, 84);
             this.button8.Name = "button8";
             this.button8.Size = new System.Drawing.Size(75, 23);
             this.button8.TabIndex = 38;
@@ -540,26 +556,23 @@
             this.button8.UseVisualStyleBackColor = true;
             this.button8.Click += new System.EventHandler(this.button8_Click);
             // 
-            // infoToolStripMenuItem
+            // checkBox1
             // 
-            this.infoToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.aboutToolStripMenuItem});
-            this.infoToolStripMenuItem.Name = "infoToolStripMenuItem";
-            this.infoToolStripMenuItem.Size = new System.Drawing.Size(40, 20);
-            this.infoToolStripMenuItem.Text = "Info";
-            // 
-            // aboutToolStripMenuItem
-            // 
-            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.aboutToolStripMenuItem.Text = "About";
-            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(30, 31);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(194, 17);
+            this.checkBox1.TabIndex = 39;
+            this.checkBox1.Text = "Resize imported image down to 256";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.Click += new System.EventHandler(this.checkBox1_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(555, 450);
+            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.button8);
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.label19);
@@ -599,7 +612,7 @@
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "Form1";
-            this.Text = "NESIFIER";
+            this.Text = "NESIFIER 1.1";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
@@ -668,6 +681,7 @@
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.ToolStripMenuItem infoToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.CheckBox checkBox1;
     }
 }
 

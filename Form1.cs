@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
@@ -13,10 +14,9 @@ namespace NESIFIER
 {
     public partial class Form1 : Form
     {
-        
-        // sometimes auto generate outputs duplicates
-        // todo, fix this issue
-
+        // todo, clean up the code
+        // double check the readme and nesdoug post
+        // backup
 
 
         public const int FLOYD_STEIN = 0;
@@ -105,6 +105,7 @@ namespace NESIFIER
         public static Color color2 = Color.Black;
         public static Color color3 = Color.Black;
         public static Color color4 = Color.Black;
+        public static Color color5 = Color.Black; // extra color, why not
         public static int color1val, color2val, color3val, color4val, sel_color_val;
         public static int has_loaded = 0;
         public static int has_converted = 0;
@@ -122,10 +123,7 @@ namespace NESIFIER
         public static int[] CHR_16bytes = new int[16];
 
         // for auto color generator
-        public static int[] R_Array = new int[65536];
-        public static int[] G_Array = new int[65536];
-        public static int[] B_Array = new int[65536];
-        public static int[] Count_Array = new int[65536]; // count each color
+        public static int[] Count_Array = new int[52]; // 65536 count each color
         public static int color_count; // how many total different colors
         public static int r_val, g_val, b_val, diff_val;
         public static int c_offset, c_offset2;
@@ -146,6 +144,7 @@ namespace NESIFIER
 
         private void pictureBox2_Click(object sender, EventArgs e)
         { // the NES palette box
+            // grab a color from it
             var mouseEventArgs = e as MouseEventArgs;
             if (mouseEventArgs == null)
             {
@@ -449,50 +448,60 @@ namespace NESIFIER
 
         Color Find_Best(Color tempcolor)
         {
-            int closest_index = 0;
-            int closest_val = 999;
+            int best_index = 0;
+            int lowest_diff = 999999;
+            int dR, dG, dB, color_diff;
 
-            int test_val = Math.Abs(tempcolor.R - color1.R);
-            test_val += Math.Abs(tempcolor.G - color1.G);
-            test_val += Math.Abs(tempcolor.B - color1.B);
-            if (test_val < closest_val)
+            dR = tempcolor.R - color1.R;
+            dG = tempcolor.G - color1.G;
+            dB = tempcolor.B - color1.B;
+            // note, the formula is supposed to take the Math.Sqrt()
+            // of this but that step has been removed as unneeded.
+            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+            
+            if (color_diff < lowest_diff)
             {
-                closest_val = test_val;
-                //closest_index = 0; // it is already
+                lowest_diff = color_diff;
             }
 
-            test_val = Math.Abs(tempcolor.R - color2.R);
-            test_val += Math.Abs(tempcolor.G - color2.G);
-            test_val += Math.Abs(tempcolor.B - color2.B);
-            if (test_val < closest_val)
+            dR = tempcolor.R - color2.R;
+            dG = tempcolor.G - color2.G;
+            dB = tempcolor.B - color2.B;
+            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+            
+            if (color_diff < lowest_diff)
             {
-                closest_val = test_val;
-                closest_index = 1;
+                lowest_diff = color_diff;
+                best_index = 1;
             }
 
-            test_val = Math.Abs(tempcolor.R - color3.R);
-            test_val += Math.Abs(tempcolor.G - color3.G);
-            test_val += Math.Abs(tempcolor.B - color3.B);
-            if (test_val < closest_val)
+            dR = tempcolor.R - color3.R;
+            dG = tempcolor.G - color3.G;
+            dB = tempcolor.B - color3.B;
+            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+            
+            if (color_diff < lowest_diff)
             {
-                closest_val = test_val;
-                closest_index = 2;
+                lowest_diff = color_diff;
+                best_index = 2;
             }
 
-            test_val = Math.Abs(tempcolor.R - color4.R);
-            test_val += Math.Abs(tempcolor.G - color4.G);
-            test_val += Math.Abs(tempcolor.B - color4.B);
-            if (test_val < closest_val)
+            dR = tempcolor.R - color4.R;
+            dG = tempcolor.G - color4.G;
+            dB = tempcolor.B - color4.B;
+            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+            
+            if (color_diff < lowest_diff)
             {
-                closest_val = test_val;
-                closest_index = 3;
+                lowest_diff = color_diff;
+                best_index = 3;
             }
 
-            remember_index = closest_index;
+            remember_index = best_index;
 
-            if (closest_index == 0) return color1;
-            if (closest_index == 1) return color2;
-            if (closest_index == 2) return color3;
+            if (best_index == 0) return color1;
+            if (best_index == 1) return color2;
+            if (best_index == 2) return color3;
             return color4;
         }
 
@@ -502,11 +511,13 @@ namespace NESIFIER
             if (has_loaded == 0)
             {
                 MessageBox.Show("Image hasn't loaded yet.");
+                label3.Focus();
                 return;
             }
             if (has_converted == 0)
             {
                 MessageBox.Show("Image hasn't converted yet.");
+                label3.Focus();
                 return;
             }
 
@@ -607,6 +618,7 @@ namespace NESIFIER
 
                 fs.Close();
             }
+            label3.Focus();
 
         }
 
@@ -681,6 +693,7 @@ namespace NESIFIER
                     blue = fs.ReadByte();
                     color4 = Color.FromArgb(red, green, blue);
 
+                    color_count = 4;
                     DRY_Palette(); // print numbers and color boxes
                 }
                 else
@@ -690,6 +703,7 @@ namespace NESIFIER
 
                 fs.Close();
             }
+            label3.Focus();
         }
 
         private void importNESToolStripMenuItem_Click(object sender, EventArgs e)
@@ -756,11 +770,14 @@ namespace NESIFIER
 
                 fs.Close();
             }
+            label3.Focus();
         }
 
         public int NEStoPaletteIndex(int inValue)
         {
             // I regret rearranging the palette colors.
+            inValue = inValue & 0x3f; // force 0-63
+
             if (inValue < 0) return 0;
             if (inValue > 63) return 0;
             if (inValue == 0) return 13; // dark gray
@@ -804,7 +821,7 @@ namespace NESIFIER
                 
                 fs.Close();
             }
-
+            label3.Focus();
         }
 
         private void exportNESToolStripMenuItem_Click(object sender, EventArgs e)
@@ -828,6 +845,7 @@ namespace NESIFIER
 
                 fs.Close();
             }
+            label3.Focus();
         }
 
         public int Pal_to_NES(int index)
@@ -863,6 +881,7 @@ namespace NESIFIER
             {
                 Clipboard.SetDataObject(out_str);
             }
+            label3.Focus();
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -939,7 +958,7 @@ namespace NESIFIER
         private void imageFromClipboardToolStripMenuItem_Click(object sender, EventArgs e)
         {
             paste_clipboard();
-
+            label3.Focus();
         }
 
 
@@ -954,23 +973,23 @@ namespace NESIFIER
 
                 // NOTE this is identical to the Import Image code
                 // any changes need to happen on both sets of code
+                // lots of redundant code...
+                // todo, make these 2 functions into 1 common function
 
                 has_loaded = 1;
                 has_converted = 0;
 
-                // blank the left
-                for (int xx = 0; xx < MAX_WIDTH; xx++)
-                {
-                    for (int yy = 0; yy < MAX_HEIGHT; yy++)
-                    {
-                        left_bmp.SetPixel(xx, yy, Color.Gray);
-                    }
-                }
+
+                float ratio1 = 1.0F;
+                float ratio2 = 1.0F;
+                int resize_width = MAX_WIDTH, resize_height = MAX_HEIGHT;
+                int need_resize = 0;
 
                 if (temp_bmp.Width > MAX_WIDTH)
                 {
                     image_width = MAX_WIDTH;
-
+                    ratio1 = temp_bmp.Width / (float)MAX_WIDTH;
+                    need_resize = 1;
                 }
                 else
                 {
@@ -980,7 +999,8 @@ namespace NESIFIER
                 if (temp_bmp.Height > MAX_HEIGHT)
                 {
                     image_height = MAX_HEIGHT;
-
+                    ratio2 = temp_bmp.Height / (float)MAX_HEIGHT;
+                    need_resize = 1;
                 }
                 else
                 {
@@ -988,18 +1008,53 @@ namespace NESIFIER
                 }
 
                 // copy the bitmap
-                Rectangle cloneRect = new Rectangle(0, 0, image_width, image_height);
-                System.Drawing.Imaging.PixelFormat format = temp_bmp.PixelFormat;
-                orig_bmp = temp_bmp.Clone(cloneRect, format);
+                if ((checkBox1.Checked == true) && (need_resize == 1))
+                {
+                    // which is bigger? divide by that
+                    if (ratio1 > ratio2)
+                    {
+                        resize_width = (int)Math.Round(temp_bmp.Width / ratio1);
+                        resize_height = (int)Math.Round(temp_bmp.Height / ratio1);
+                    }
+                    else
+                    {
+                        resize_width = (int)Math.Round(temp_bmp.Width / ratio2);
+                        resize_height = (int)Math.Round(temp_bmp.Height / ratio2);
+                    }
+
+                    // resize to fit
+                    using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                    {
+                        g2.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g2.DrawImage(temp_bmp, 0, 0, resize_width, resize_height);
+                    }
+
+                    image_width = resize_width;
+                    image_height = resize_height;
+                }
+                else
+                {
+                    // copy the bitmap
+                    Rectangle cloneRect = new Rectangle(0, 0, image_width, image_height);
+                    System.Drawing.Imaging.PixelFormat format = temp_bmp.PixelFormat;
+                    orig_bmp = temp_bmp.Clone(cloneRect, format);
+                }
 
                 Color temp_color = Color.Black;
 
                 // copy pixel by pixel
-                for (int xx = 0; xx < image_width; xx++)
+                for (int xx = 0; xx < 256; xx++)
                 {
-                    for (int yy = 0; yy < image_height; yy++)
+                    for (int yy = 0; yy < 256; yy++)
                     {
-                        temp_color = temp_bmp.GetPixel(xx, yy);
+                        if ((xx < image_width) && (yy < image_height))
+                        {
+                            temp_color = orig_bmp.GetPixel(xx, yy);
+                        }
+                        else
+                        {
+                            temp_color = Color.Gray;
+                        }
                         left_bmp.SetPixel(xx, yy, temp_color);
                     }
                 }
@@ -1010,8 +1065,8 @@ namespace NESIFIER
                 pictureBox1.Refresh();
 
                 // show the width and height
-                label7.Text = orig_bmp.Width.ToString();
-                label8.Text = orig_bmp.Height.ToString();
+                label7.Text = image_width.ToString();
+                label8.Text = image_height.ToString();
 
                 label6.Text = "Loaded";
 
@@ -1029,9 +1084,8 @@ namespace NESIFIER
                 label3.Focus();
                 return;
             }
-            int color_found = 0;
-            int red = 0, blue = 0, green = 0;
-            int temp_var, closest_cnt, added;
+            
+            int times3;
 
             // default colors
             color1 = Color.Black;
@@ -1044,86 +1098,41 @@ namespace NESIFIER
             label12.Text = "$0f";
 
             // blank the arrays
-            for (int i = 0; i < 65536; i++)
+            for (int i = 0; i < 52; i++)
             {
-                R_Array[i] = 0;
-                G_Array[i] = 0;
-                B_Array[i] = 0;
                 Count_Array[i] = 0;
             }
             color_count = 0;
 
             Color tempcolor = Color.Black;
 
-            // read all possible colors from the orig image
-            // removing duplicates, keep track of how many
+            // count all NES colors
             for (int yy = 0; yy < image_height; yy++)
             {
                 for (int xx = 0; xx < image_width; xx++)
                 {
                     tempcolor = orig_bmp.GetPixel(xx, yy);
-                    // speed it up, narrow the possibilities.
-                    red = tempcolor.R & 0xf8;
-                    blue = tempcolor.G & 0xf8;
-                    green = tempcolor.B & 0xf8;
-                    tempcolor = Color.FromArgb(red, blue, green);
 
-                    // compare to all other colors, add if not present
-                    if (color_count == 0)
-                    {
-                        Add_Color(tempcolor);
-                        continue;
-                    }
+                    tempcolor = ToNES(tempcolor, -1);
 
-                    color_found = 0;
-                    for (int i = 0; i < color_count; i++)
-                    {
-                        if((tempcolor.R == R_Array[i] &&
-                            tempcolor.G == G_Array[i] &&
-                            tempcolor.B == B_Array[i]))
-                        { // color match found
-                            Count_Array[i] = Count_Array[i] + 1;
-                            color_found = 1;
-                            break;
-                        }
-                    }
-                    // no color match found
-                    if(color_found == 0)
-                    {
-                        Add_Color(tempcolor);
-                    }
-                    
+                    Count_Array[remember_index] += 1;
+
+
                 }
             }
+            
+
+            color_count = 0;
+            // how many different colors
+            for (int i = 0; i < 52; i++)
+            {
+                if (Count_Array[i] != 0) color_count++;
+            }
+
             label7.Text = color_count.ToString(); // print, how many colors
 
-            // this mid point algorithm tends avoid extremes
-            // give extra weight to the lowest value and the highest value
-            // first find the darkest and lightest colors
-            int darkest = 999;
-            int darkest_index = 0;
-            int lightest = 0;
-            int lightest_index = 0;
-            for (int i = 0; i < color_count; i++)
-            {
-                added = R_Array[i] + G_Array[i] + B_Array[i];
-                if (added < darkest)
-                {
-                    darkest = added;
-                    darkest_index = i;
-                }
-                if (added > lightest)
-                {
-                    lightest = added;
-                    lightest_index = i;
-                }
-            }
-            // give more count to them
-            temp_var = image_width * image_height / 8; // 8 is magic
-            Count_Array[darkest_index] += temp_var;
-            Count_Array[lightest_index] += temp_var;
 
-            // then reduce to 4 colors, using a mid point merge with
+            // then reduce to 4 colors, using a plain merge
             // the closest neighbor color
 
             int color_count2 = color_count;
@@ -1131,8 +1140,8 @@ namespace NESIFIER
             {
                 //find the least count
                 int least_index = 0;
-                int least_cnt = 99999;
-                for(int i = 0; i < color_count; i++)
+                int least_cnt = 999999;
+                for (int i = 0; i < 52; i++)
                 {
                     if (Count_Array[i] == 0) continue;
                     if (Count_Array[i] < least_cnt)
@@ -1145,135 +1154,162 @@ namespace NESIFIER
                 Count_Array[least_index] = 0;
 
                 int closest_index = 0;
-                int closest_val = 999;
-                r_val = R_Array[least_index];
-                g_val = G_Array[least_index];
-                b_val = B_Array[least_index];
+                int closest_val = 999999;
+                times3 = least_index * 3;
+                r_val = NES_PALETTE[times3];
+                g_val = NES_PALETTE[times3+1];
+                b_val = NES_PALETTE[times3+2];
+                int dR = 0, dG = 0, dB = 0;
 
                 // find the closest to that one
-                for (int i = 0; i < color_count; i++)
+                for (int i = 0; i < 52; i++)
                 {
                     if (Count_Array[i] == 0) continue;
-                    diff_val = Math.Abs(r_val - R_Array[i]);
-                    diff_val += Math.Abs(g_val - G_Array[i]);
-                    diff_val += Math.Abs(b_val - B_Array[i]);
+                    times3 = i * 3;
+                    dR = r_val - NES_PALETTE[times3];
+                    dG = g_val - NES_PALETTE[times3+1];
+                    dB = b_val - NES_PALETTE[times3+2];
+                    diff_val = ((dR * dR) + (dG * dG) + (dB * dB));
+
                     if (diff_val < closest_val)
                     {
                         closest_val = diff_val;
                         closest_index = i;
                     }
                 }
-                closest_cnt = Count_Array[closest_index];
-
-                // merge closet index with least index, mid point
-                temp_var = (closest_cnt + least_cnt);
-                // the algorithm was (color1 + color2) / 2
-                // but now, multiplied each by their count, div by both counts
-                r_val = (R_Array[least_index] * least_cnt) + (R_Array[closest_index] * closest_cnt);
-                r_val = (int)Math.Round((double)r_val/temp_var);
-                g_val = (G_Array[least_index] * least_cnt) + (G_Array[closest_index] * closest_cnt);
-                g_val = (int)Math.Round((double)g_val / temp_var);
-                b_val = (B_Array[least_index] * least_cnt) + (B_Array[closest_index] * closest_cnt);
-                b_val = (int)Math.Round((double)b_val / temp_var);
-                R_Array[closest_index] = r_val;
-                G_Array[closest_index] = g_val;
-                B_Array[closest_index] = b_val;
-                Count_Array[closest_index] = closest_cnt + least_cnt;
+                if(color_count2 == 5) // save the 5th color, why not.
+                {
+                    color5 = Color.FromArgb(r_val, g_val, b_val);
+                }
+                
+                Count_Array[closest_index] += least_cnt;
 
                 color_count2--;
-                
+
             }
             label8.Text = color_count2.ToString(); // print, final # colors (4)
 
             // find the 4 colors
-            int find_color = 0;
-            for(int i = 0; i < color_count; i++)
+            
+            int final_index = 0;
+            times3 = 0;
+            for (int i = 0; i < 52; i++)
             {
-                if (Count_Array[i] != 0)
+                if (Count_Array[i] == 0) continue;
+                times3 = i * 3;
+                r_val = NES_PALETTE[times3];
+                g_val = NES_PALETTE[times3+1];
+                b_val = NES_PALETTE[times3+2];
+                tempcolor = Color.FromArgb(r_val, g_val, b_val);
+                switch (final_index)
                 {
-                    find_color = i;
-                    break;
-                }
-            }
-            r_val = R_Array[find_color];
-            g_val = G_Array[find_color];
-            b_val = B_Array[find_color];
-            color1 = Color.FromArgb(r_val, g_val, b_val);
-
-            if(color_count > 1)
-            {
-                for (int i = find_color+1; i < color_count; i++)
-                {
-                    if (Count_Array[i] != 0)
-                    {
-                        find_color = i;
+                    case 0:
+                        color1 = tempcolor;
                         break;
-                    }
-                }
-                r_val = R_Array[find_color];
-                g_val = G_Array[find_color];
-                b_val = B_Array[find_color];
-                color2 = Color.FromArgb(r_val, g_val, b_val);
-            }
-
-            if (color_count > 2)
-            {
-                for (int i = find_color + 1; i < color_count; i++)
-                {
-                    if (Count_Array[i] != 0)
-                    {
-                        find_color = i;
+                    case 1:
+                        color2 = tempcolor;
                         break;
-                    }
+                    case 2:
+                        color3 = tempcolor;
+                        break;
+                    case 3:
+                        color4 = tempcolor;
+                        break;
+                    default:
+                        break;
                 }
-                r_val = R_Array[find_color];
-                g_val = G_Array[find_color];
-                b_val = B_Array[find_color];
-                color3 = Color.FromArgb(r_val, g_val, b_val);
+
+                final_index++;
             }
 
-            if (color_count > 3)
+
+            // reorder white so it is at the bottom (right)
+            if (color1.ToArgb() == Color.White.ToArgb() )
             {
-                for (int i = find_color + 1; i < color_count; i++)
-                {
-                    if (Count_Array[i] != 0)
-                    {
-                        find_color = i;
-                        break;
-                    }
-                }
-                r_val = R_Array[find_color];
-                g_val = G_Array[find_color];
-                b_val = B_Array[find_color];
-                color4 = Color.FromArgb(r_val, g_val, b_val);
+                tempcolor = color1; // white
+                color1 = color2;
+                color2 = color3;
+                color3 = color4;
+                color4 = tempcolor;
             }
+            else if (color2.ToArgb() == Color.White.ToArgb() )
+            {
+                tempcolor = color2; // white
+                color2 = color3;
+                color3 = color4;
+                color4 = tempcolor;
+            }
+            else if (color3.ToArgb() == Color.White.ToArgb() )
+            {
+                tempcolor = color3; // white
+                color3 = color4;
+                color4 = tempcolor;
+            }
+
 
             DRY_Palette(); // don't repeat yourself
+            if(color_count > 4)
+            { // try a 5th color, why not?
+                color5 = ToNES(color5, -1); // to get the remember_index
+                pictureBox7.BackColor = color5;
+                sel_color = color5; // remember_index;
+                sel_color_val = remember_index;
+                label14.Text = sel_color.R.ToString() + ", " +
+                    sel_color.G.ToString() + ", " +
+                    sel_color.B.ToString();
+                string nes_str = GetNesVal(remember_index);
+                label13.Text = nes_str;
+            }
+
             label3.Focus();
         }
 
         public void DRY_Palette()
         {
             // convert all RGB to nearest NES color
-            color1 = ToNES(color1); // ToNES also sets remember_index
+            
+            color1 = ToNES(color1, -1); // ToNES also sets remember_index
             string nes_str = GetNesVal(remember_index);
             label9.Text = nes_str;
             color1val = remember_index;
 
-            color2 = ToNES(color2);
+            if (color_count == 1) goto End1;
+
+            Color tempcolor = color2;
+            color2 = ToNES(color2, -1);
+            if(color1 == color2)
+            { // bug fix
+                color2 = ToNES(tempcolor, remember_index);
+            }
             nes_str = GetNesVal(remember_index);
             label10.Text = nes_str;
             color2val = remember_index;
 
-            color3 = ToNES(color3);
+            if (color_count == 2) goto End1;
+
+            tempcolor = color3;
+            color3 = ToNES(color3, -1);
+            if ((color1 == color3) || (color2 == color3))
+            { // bug fix
+                color3 = ToNES(tempcolor, remember_index);
+            }
             nes_str = GetNesVal(remember_index);
             label11.Text = nes_str;
             color3val = remember_index;
 
-            color4 = ToNES(color4);
+            if (color_count == 3) goto End1;
+
+            tempcolor = color4;
+            color4 = ToNES(color4, -1);
+            if ((color1 == color4) || (color2 == color4) || (color3 == color4))
+            { // bug fix
+                color4 = ToNES(tempcolor, remember_index);
+            }
             nes_str = GetNesVal(remember_index);
             label12.Text = nes_str;
             color4val = remember_index;
+
+            End1:
 
             // copy to the boxes
             pictureBox3.BackColor = color1;
@@ -1296,16 +1332,6 @@ namespace NESIFIER
                 color4.B.ToString();
         }
 
-
-        public void Add_Color(Color tempcolor)
-        {
-            R_Array[color_count] = tempcolor.R;
-            G_Array[color_count] = tempcolor.G;
-            B_Array[color_count] = tempcolor.B;
-            Count_Array[color_count] = 1;
-
-            color_count++;
-        }
 
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
         { // dither factor
@@ -1345,9 +1371,13 @@ namespace NESIFIER
 
         private void label3_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         { // check if Ctrl+V is pressed
+            // lots of label3.Focus() to direct button presses here
+            // prehaps some of them are unneeded ?
+
             if (e.KeyCode == Keys.V)
             {
                 paste_clipboard();
+                label3.Focus();
             }
         }
 
@@ -1360,6 +1390,12 @@ namespace NESIFIER
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show("2021 Doug Fraker.\nnesdoug.com");
+            label3.Focus();
+        }
+
+        private void checkBox1_Click(object sender, EventArgs e)
+        {
+            label3.Focus();
         }
 
         private void exportImageToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1367,11 +1403,13 @@ namespace NESIFIER
             if (has_loaded == 0)
             {
                 MessageBox.Show("No image loaded.");
+                label3.Focus();
                 return;
             }
             if (has_converted == 0)
             {
-                MessageBox.Show("Image hasn't converted yet."); 
+                MessageBox.Show("Image hasn't converted yet.");
+                label3.Focus();
                 return;
             }
 
@@ -1409,10 +1447,11 @@ namespace NESIFIER
 
                 }
             }
+            label3.Focus();
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)
-        { // click on the picture
+        { // click on the picture, get the color -> selected color
             if (has_loaded == 0)
             {
                 label3.Focus();
@@ -1437,7 +1476,7 @@ namespace NESIFIER
 
             Color tempcolor = left_bmp.GetPixel(map_x, map_y);
 
-            tempcolor = ToNES(tempcolor);
+            tempcolor = ToNES(tempcolor, -1);
             // ToNES also sets remember_index
 
             sel_color = tempcolor;
@@ -1513,21 +1552,31 @@ namespace NESIFIER
             return "error 3";
         }
 
-        public Color ToNES(Color tempcolor)
+        public Color ToNES(Color tempcolor, int forbid)
         {
-            //13 x 4 = 52 colors x 3 = 156
-            int diff = 0, best_index = 0, lowest_diff = 9999;
+            // forbid is optional index to not allow.
+            forbid = forbid * 3;
+            // return closest color in the NES palette
+            // 13 x 4 = 52 colors x 3 = 156 byte array
+            int color_diff = 0, best_index = 0, lowest_diff = 999999;
+            int dR = 0, dG = 0, dB = 0;
             int rr = 0;
             int gg = 1;
             int bb = 2;
+            // check every NES color, which is closest match?
             for ( ; rr < 156; rr += 3, gg += 3, bb += 3)
             {
-                diff = Math.Abs(tempcolor.R - NES_PALETTE[rr]);
-                diff += Math.Abs(tempcolor.G - NES_PALETTE[gg]);
-                diff += Math.Abs(tempcolor.B - NES_PALETTE[bb]);
-                if(diff < lowest_diff)
+                if (rr == forbid) continue;
+                dR = tempcolor.R - NES_PALETTE[rr];
+                dG = tempcolor.G - NES_PALETTE[gg];
+                dB = tempcolor.B - NES_PALETTE[bb];
+                // note, the formula is supposed to take the Math.Sqrt()
+                // of this but that step has been removed as unneeded.
+                color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+
+                if (color_diff < lowest_diff)
                 {
-                    lowest_diff = diff;
+                    lowest_diff = color_diff;
                     best_index = rr;
                 }
             }
@@ -1559,21 +1608,19 @@ namespace NESIFIER
                     has_loaded = 1;
                     has_converted = 0;
 
-                    // blank the left
-                    for (int xx = 0; xx < MAX_WIDTH; xx++)
-                    {
-                        for (int yy = 0; yy < MAX_HEIGHT; yy++)
-                        {
-                            left_bmp.SetPixel(xx, yy, Color.Gray);
-                        }
-                    }
 
                     Bitmap temp_bmp = new Bitmap(dlg.FileName);
+
+                    float ratio1 = 1.0F;
+                    float ratio2 = 1.0F;
+                    int resize_width = MAX_WIDTH, resize_height = MAX_HEIGHT;
+                    int need_resize = 0;
 
                     if (temp_bmp.Width > MAX_WIDTH)
                     {
                         image_width = MAX_WIDTH;
-                        
+                        ratio1 = temp_bmp.Width / (float)MAX_WIDTH;
+                        need_resize = 1;
                     }
                     else
                     {
@@ -1583,26 +1630,62 @@ namespace NESIFIER
                     if (temp_bmp.Height > MAX_HEIGHT)
                     {
                         image_height = MAX_HEIGHT;
-
+                        ratio2 = temp_bmp.Height / (float)MAX_HEIGHT;
+                        need_resize = 1;
                     }
                     else
                     {
                         image_height = temp_bmp.Height;
                     }
 
-                    // copy the bitmap
-                    Rectangle cloneRect = new Rectangle(0, 0, image_width, image_height);
-                    System.Drawing.Imaging.PixelFormat format = temp_bmp.PixelFormat;
-                    orig_bmp = temp_bmp.Clone(cloneRect, format);
+                    if((checkBox1.Checked == true) && (need_resize == 1))
+                    {
+                        // which is bigger? divide by that
+                        if (ratio1 > ratio2)
+                        {
+                            resize_width = (int)Math.Round(temp_bmp.Width / ratio1);
+                            resize_height = (int)Math.Round(temp_bmp.Height / ratio1);
+                        }
+                        else
+                        {
+                            resize_width = (int)Math.Round(temp_bmp.Width / ratio2);
+                            resize_height = (int)Math.Round(temp_bmp.Height / ratio2);
+                        }
+
+                        using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                        {
+                            g2.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                            g2.DrawImage(temp_bmp, 0, 0, resize_width, resize_height);
+                        }
+
+                        image_width = resize_width;
+                        image_height = resize_height;
+                    }
+                    else
+                    {
+                        // copy the bitmap
+                        Rectangle cloneRect = new Rectangle(0, 0, image_width, image_height);
+                        System.Drawing.Imaging.PixelFormat format = temp_bmp.PixelFormat;
+                        orig_bmp = temp_bmp.Clone(cloneRect, format);
+                    }
+
+                    
 
                     Color temp_color = Color.Black;
 
                     // copy pixel by pixel
-                    for (int xx = 0; xx < image_width; xx++)
+                    for (int xx = 0; xx < 256; xx++)
                     {
-                        for (int yy = 0; yy < image_height; yy++)
+                        for (int yy = 0; yy < 256; yy++)
                         {
-                            temp_color = temp_bmp.GetPixel(xx, yy);
+                            if((xx < image_width) && (yy < image_height))
+                            {
+                                temp_color = orig_bmp.GetPixel(xx, yy);
+                            }
+                            else
+                            {
+                                temp_color = Color.Gray;
+                            }
                             left_bmp.SetPixel(xx, yy, temp_color);
                         }
                     }
@@ -1613,14 +1696,17 @@ namespace NESIFIER
                     pictureBox1.Refresh();
 
                     // show the width and height
-                    label7.Text = orig_bmp.Width.ToString();
-                    label8.Text = orig_bmp.Height.ToString();
+                    label7.Text = image_width.ToString();
+                    label8.Text = image_height.ToString();
 
                     label6.Text = "Loaded";
+
                 }
-
+                // it was locking up files, so...
+                dlg.Dispose();
+                GC.Collect();
             }
-
+            label3.Focus();
         }
 
         

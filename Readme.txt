@@ -48,8 +48,7 @@ of the picture, there is a high probablility that it won't be
 selected. For example, if the image is 90% shades of gray
 and 10% red, it might decide to remove all reds.
 
-Sometimes it will choose two of the same color. This is an issue
-that will be improved in future versions.
+It will suggest a 5th color, and put it in the Selected Color box.
 
 Finally, save the image and/or the CHR file. You can optionally
 change the index of the CHR output by clicking on the 4 buttons
