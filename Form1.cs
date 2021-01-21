@@ -14,10 +14,7 @@ namespace NESIFIER
 {
     public partial class Form1 : Form
     {
-        // todo, clean up the code
-        // double check the readme and nesdoug post
-        // backup
-
+        
 
         public const int FLOYD_STEIN = 0;
         public const int BAYER8 = 1;
@@ -1034,18 +1031,22 @@ namespace NESIFIER
                 }
                 else
                 {
-                    // copy the bitmap
-                    Rectangle cloneRect = new Rectangle(0, 0, image_width, image_height);
-                    System.Drawing.Imaging.PixelFormat format = temp_bmp.PixelFormat;
-                    orig_bmp = temp_bmp.Clone(cloneRect, format);
+                    // copy the bitmap, crop but don't resize
+                    Rectangle copyRect = new Rectangle(0, 0, image_width, image_height);
+                    using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                    {
+                        g2.DrawImage(temp_bmp, copyRect, copyRect, GraphicsUnit.Pixel);
+                    }
+
+
                 }
 
                 Color temp_color = Color.Black;
 
                 // copy pixel by pixel
-                for (int xx = 0; xx < 256; xx++)
+                for (int xx = 0; xx < MAX_WIDTH; xx++)
                 {
-                    for (int yy = 0; yy < 256; yy++)
+                    for (int yy = 0; yy < MAX_HEIGHT; yy++)
                     {
                         if ((xx < image_width) && (yy < image_height))
                         {
@@ -1348,6 +1349,7 @@ namespace NESIFIER
         private void textBox1_Leave(object sender, EventArgs e)
         { // dither factor
             dither_factor_set();
+            label3.Focus();
         }
 
         public void dither_factor_set()
@@ -1663,20 +1665,23 @@ namespace NESIFIER
                     }
                     else
                     {
-                        // copy the bitmap
-                        Rectangle cloneRect = new Rectangle(0, 0, image_width, image_height);
-                        System.Drawing.Imaging.PixelFormat format = temp_bmp.PixelFormat;
-                        orig_bmp = temp_bmp.Clone(cloneRect, format);
+                        // copy the bitmap, crop but don't resize
+                        Rectangle copyRect = new Rectangle(0, 0, image_width, image_height);
+                        using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                        {
+                            g2.DrawImage(temp_bmp, copyRect, copyRect, GraphicsUnit.Pixel);
+                        }
+
                     }
 
-                    
+
 
                     Color temp_color = Color.Black;
 
                     // copy pixel by pixel
-                    for (int xx = 0; xx < 256; xx++)
+                    for (int xx = 0; xx < MAX_WIDTH; xx++)
                     {
-                        for (int yy = 0; yy < 256; yy++)
+                        for (int yy = 0; yy < MAX_HEIGHT; yy++)
                         {
                             if((xx < image_width) && (yy < image_height))
                             {
