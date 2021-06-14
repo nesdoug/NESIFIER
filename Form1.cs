@@ -14,10 +14,23 @@ namespace NESIFIER
 {
     public partial class Form1 : Form
     {
-        
+        // TODO LIST
+
+        // write some test ca65 project
+        // test pad CHR
+        // dz4
+        // readme
+        // clean up folders
+        // post it
+
+
 
         public const int FLOYD_STEIN = 0;
         public const int BAYER8 = 1;
+        public const int SCANLINE = 2;
+        public const int BAYER2 = 3;
+        public const int TRIANGLE = 4;
+
         public readonly int[,] BAYER_MATRIX =
         {
             { 0,48,12,60,3,51,15,63 },
@@ -29,6 +42,20 @@ namespace NESIFIER
             { 10,58,6,54,9,57,5,53 },
             { 42,26,38,22,41,25,37,21 }
         }; // 1/64 times this
+
+        public readonly int[,] BAD_MATRIX =
+        {
+            { -25, 15 },
+            { 35, -5 }
+        }; // -14, 14, 14, -14
+
+        public readonly int[,] TRI_MATRIX =
+        {
+            { -20, 20, -20, -20 },
+            { 20, 40, 20, -40 },
+            { -20, -20, -20, 20 },
+            { 20, -40, 20, 40 }
+        };
 
         public const int BAYER_MULT = 64;
         public static int dither_factor = 0;
@@ -96,7 +123,7 @@ namespace NESIFIER
             0xc4, 0xf6, 0xf6
         };
         
-        public static int[] Out_Indexes = new int[4] { 0, 1, 2, 3 };
+        //public static int[] Out_Indexes = new int[4] { 0, 1, 2, 3 };
         public static Color sel_color = Color.Black;
         public static Color color1 = Color.Black;
         public static Color color2 = Color.Black;
@@ -107,23 +134,33 @@ namespace NESIFIER
         public static int has_loaded = 0;
         public static int has_converted = 0;
 
-        public static Bitmap orig_bmp = new Bitmap(256, 256);
+        public static Bitmap work_bmp = new Bitmap(256, 256);
+        public static Bitmap revert_bmp = new Bitmap(256, 256);
         public static Bitmap conv_bmp = new Bitmap(256, 256);
         public static Bitmap left_bmp = new Bitmap(256, 256);
         public static Bitmap right_bmp = new Bitmap(256, 256); // dither scratchpad
 
         const int MAX_WIDTH = 256;
-        const int MAX_HEIGHT = 256;
+        const int MAX_HEIGHT = 240;
         public static int image_width, image_height;
+        public static int user_width = 256;
+        public static int user_height = 240;
         public static int remember_index;
         public static int[] Out_Array = new int[65536]; // for CHR output
+        public static int[] CHR_All = new int[16384]; // 16 bytes * 256 tiles * 4
+        public static int[] CHR_Reduced = new int[16384];
         public static int[] CHR_16bytes = new int[16];
+        public static int[] Nametable = new int[1024]; // 32 x 30 (and some extra)
 
         // for auto color generator
         public static int[] Count_Array = new int[52]; // 65536 count each color
         public static int color_count; // how many total different colors
         public static int r_val, g_val, b_val, diff_val;
         public static int c_offset, c_offset2;
+
+        public static int count_tiles, count_tiles2; // 2 is duplicate tiles removed
+        public static int tile_offset, nametable_index;
+        public static int out_size;
 
         public Form1()
         {
@@ -132,7 +169,7 @@ namespace NESIFIER
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            comboBox1.SelectedIndex = 0;
+            comboBox1.SelectedIndex = 1;
             comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
             label3.Focus();
             this.ActiveControl = label3;
@@ -183,57 +220,117 @@ namespace NESIFIER
 
         private void pictureBox3_Click(object sender, EventArgs e)
         { // color 1
-            color1val = sel_color_val;
-            color1 = sel_color;
-            pictureBox3.BackColor = color1;
-            label9.Text = label13.Text;
+            MouseEventArgs me = (MouseEventArgs)e;
+            if (me.Button == MouseButtons.Right) // right click
+            {
+                sel_color_val = color1val;
+                sel_color = color1;
+                label14.Text = sel_color.R.ToString() + ", " +
+                    sel_color.G.ToString() + ", " +
+                    sel_color.B.ToString();
+                string nes_str = GetNesVal(sel_color_val);
+                label13.Text = nes_str;
+                pictureBox7.BackColor = sel_color;
+            }
+            else // left click
+            {
+                color1val = sel_color_val;
+                color1 = sel_color;
+                pictureBox3.BackColor = color1;
+                label9.Text = label13.Text;
 
-            label15.Text = color1.R.ToString() + ", " +
-                color1.G.ToString() + ", " +
-                color1.B.ToString();
+                label15.Text = color1.R.ToString() + ", " +
+                    color1.G.ToString() + ", " +
+                    color1.B.ToString();
+            }
 
             label3.Focus();
         }
 
         private void pictureBox4_Click(object sender, EventArgs e)
         { // color 2
-            color2val = sel_color_val;
-            color2 = sel_color;
-            pictureBox4.BackColor = color2;
-            label10.Text = label13.Text;
+            MouseEventArgs me = (MouseEventArgs)e;
+            if (me.Button == MouseButtons.Right) // right click
+            {
+                sel_color_val = color2val;
+                sel_color = color2;
+                label14.Text = sel_color.R.ToString() + ", " +
+                    sel_color.G.ToString() + ", " +
+                    sel_color.B.ToString();
+                string nes_str = GetNesVal(sel_color_val);
+                label13.Text = nes_str;
+                pictureBox7.BackColor = sel_color;
+            }
+            else 
+            {
+                color2val = sel_color_val;
+                color2 = sel_color;
+                pictureBox4.BackColor = color2;
+                label10.Text = label13.Text;
 
-            label16.Text = color2.R.ToString() + ", " +
-                color2.G.ToString() + ", " +
-                color2.B.ToString();
-
+                label16.Text = color2.R.ToString() + ", " +
+                    color2.G.ToString() + ", " +
+                    color2.B.ToString();
+            }
+            
             label3.Focus();
         }
 
         private void pictureBox5_Click(object sender, EventArgs e)
         { // color 3
-            color3val = sel_color_val;
-            color3 = sel_color;
-            pictureBox5.BackColor = color3;
-            label11.Text = label13.Text;
+            MouseEventArgs me = (MouseEventArgs)e;
+            if (me.Button == MouseButtons.Right) // right click
+            {
+                sel_color_val = color3val;
+                sel_color = color3;
+                label14.Text = sel_color.R.ToString() + ", " +
+                    sel_color.G.ToString() + ", " +
+                    sel_color.B.ToString();
+                string nes_str = GetNesVal(sel_color_val);
+                label13.Text = nes_str;
+                pictureBox7.BackColor = sel_color;
+            }
+            else 
+            {
+                color3val = sel_color_val;
+                color3 = sel_color;
+                pictureBox5.BackColor = color3;
+                label11.Text = label13.Text;
 
-            label17.Text = color3.R.ToString() + ", " +
-                color3.G.ToString() + ", " +
-                color3.B.ToString();
+                label17.Text = color3.R.ToString() + ", " +
+                    color3.G.ToString() + ", " +
+                    color3.B.ToString();
+            }
 
             label3.Focus();
         }
 
         private void pictureBox6_Click(object sender, EventArgs e)
         { // color 4
-            color4val = sel_color_val;
-            color4 = sel_color;
-            pictureBox6.BackColor = color4;
-            label12.Text = label13.Text;
+            MouseEventArgs me = (MouseEventArgs)e;
+            if (me.Button == MouseButtons.Right) // right click
+            {
+                sel_color_val = color4val;
+                sel_color = color4;
+                label14.Text = sel_color.R.ToString() + ", " +
+                    sel_color.G.ToString() + ", " +
+                    sel_color.B.ToString();
+                string nes_str = GetNesVal(sel_color_val);
+                label13.Text = nes_str;
+                pictureBox7.BackColor = sel_color;
+            }
+            else
+            {
+                color4val = sel_color_val;
+                color4 = sel_color;
+                pictureBox6.BackColor = color4;
+                label12.Text = label13.Text;
 
-            label18.Text = color4.R.ToString() + ", " +
-                color4.G.ToString() + ", " +
-                color4.B.ToString();
-
+                label18.Text = color4.R.ToString() + ", " +
+                    color4.G.ToString() + ", " +
+                    color4.B.ToString();
+            }
+            
             label3.Focus();
         }
 
@@ -258,7 +355,7 @@ namespace NESIFIER
                 Out_Array[i] = 0;
             }
 
-            // convert the orig_bmp to conv_bmp, copy to picturebox
+            // convert the work_bmp to conv_bmp, copy to picturebox
 
             for (int xx = 0; xx < MAX_WIDTH; xx++)
             {
@@ -282,12 +379,12 @@ namespace NESIFIER
                     for (int xx = 0; xx < image_width; xx++) 
                     {
                         // do the dither later
-                        tempcolor = orig_bmp.GetPixel(xx, yy);
+                        tempcolor = work_bmp.GetPixel(xx, yy);
                         right_bmp.SetPixel(xx, yy, tempcolor);
                     }
                 }
             }
-            else // BAYER8
+            else if (comboBox1.SelectedIndex == BAYER8)// BAYER8
             {
                 // do the dither now
                 for (int yy = 0; yy < image_height; yy++) 
@@ -296,7 +393,7 @@ namespace NESIFIER
                     {
                         if(dither_factor > 0)
                         {
-                            tempcolor = orig_bmp.GetPixel(xx, yy);
+                            tempcolor = work_bmp.GetPixel(xx, yy);
                             red = tempcolor.R - dither_adjust; // keep it from lightening
                             green = tempcolor.G - dither_adjust;
                             blue = tempcolor.B - dither_adjust;
@@ -315,13 +412,114 @@ namespace NESIFIER
                         }
                         else
                         { // no dither factor
-                            tempcolor = orig_bmp.GetPixel(xx, yy);
+                            tempcolor = work_bmp.GetPixel(xx, yy);
                             right_bmp.SetPixel(xx, yy, tempcolor);
                         }
                         
                     }
                 }
             }
+            else if (comboBox1.SelectedIndex == SCANLINE)
+            {
+                dither_adjust = (dither_adjust * 2) / 3; // 2/3
+                for (int yy = 0; yy < image_height; yy++)
+                {
+                    for (int xx = 0; xx < image_width; xx++)
+                    {
+                        tempcolor = work_bmp.GetPixel(xx, yy);
+                        red = tempcolor.R;
+                        green = tempcolor.G;
+                        blue = tempcolor.B;
+                        if ((yy % 2) == 0)
+                        {
+                            red += dither_adjust;
+                            green += dither_adjust;
+                            blue += dither_adjust;
+                        }
+                        else
+                        {
+                            red -= dither_adjust;
+                            green -= dither_adjust;
+                            blue -= dither_adjust;
+                        }
+                        red = Math.Max(0, red); // clamp min max
+                        red = Math.Min(255, red);
+                        green = Math.Max(0, green);
+                        green = Math.Min(255, green);
+                        blue = Math.Max(0, blue);
+                        blue = Math.Min(255, blue);
+                        right_bmp.SetPixel(xx, yy, Color.FromArgb(red, green, blue));
+                    }
+                }
+            }
+            else if (comboBox1.SelectedIndex == BAYER2)
+            {
+                //
+                for (int yy = 0; yy < image_height; yy++)
+                {
+                    for (int xx = 0; xx < image_width; xx++)
+                    {
+                        if (dither_factor > 0)
+                        {
+                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            red = tempcolor.R; 
+                            green = tempcolor.G;
+                            blue = tempcolor.B;
+                            bayer_val = BAD_MATRIX[xx % 2, yy % 2];
+                            bayer_val = (int)((double)bayer_val * dither_db);
+                            red += bayer_val;
+                            red = Math.Max(0, red); // clamp min max
+                            red = Math.Min(255, red);
+                            green += bayer_val;
+                            green = Math.Max(0, green);
+                            green = Math.Min(255, green);
+                            blue += bayer_val;
+                            blue = Math.Max(0, blue);
+                            blue = Math.Min(255, blue);
+                            right_bmp.SetPixel(xx, yy, Color.FromArgb(red, green, blue));
+                        }
+                        else
+                        { // no dither factor
+                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            right_bmp.SetPixel(xx, yy, tempcolor);
+                        }
+                    }
+                }
+            }
+            else // TRIANGLE
+            {
+                for (int yy = 0; yy < image_height; yy++)
+                {
+                    for (int xx = 0; xx < image_width; xx++)
+                    {
+                        if (dither_factor > 0)
+                        {
+                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            red = tempcolor.R;
+                            green = tempcolor.G;
+                            blue = tempcolor.B;
+                            bayer_val = TRI_MATRIX[yy % 4, xx % 4];
+                            bayer_val = (int)((double)bayer_val * dither_db);
+                            red += bayer_val;
+                            red = Math.Max(0, red); // clamp min max
+                            red = Math.Min(255, red);
+                            green += bayer_val;
+                            green = Math.Max(0, green);
+                            green = Math.Min(255, green);
+                            blue += bayer_val;
+                            blue = Math.Max(0, blue);
+                            blue = Math.Min(255, blue);
+                            right_bmp.SetPixel(xx, yy, Color.FromArgb(red, green, blue));
+                        }
+                        else
+                        { // no dither factor
+                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            right_bmp.SetPixel(xx, yy, tempcolor);
+                        }
+                    }
+                }
+            }
+            
 
             dither_db = dither_factor / 12.0; // 10 seemed too much
 
@@ -355,6 +553,9 @@ namespace NESIFIER
             
             // copy right_bmp to conv_bmp
             pictureBox1.Image = conv_bmp;
+
+            // process the CHR array also
+            Big_CHR_Loops();
 
             label3.Focus();
         }
@@ -503,120 +704,305 @@ namespace NESIFIER
         }
 
 
-        private void saveAsCHRToolStripMenuItem_Click(object sender, EventArgs e)
-        { // save CHR file
-            if (has_loaded == 0)
-            {
-                MessageBox.Show("Image hasn't loaded yet.");
-                label3.Focus();
-                return;
-            }
-            if (has_converted == 0)
-            {
-                MessageBox.Show("Image hasn't converted yet.");
-                label3.Focus();
-                return;
-            }
-
-            // Out_Array[65536] y*256 + x
-
-            // divide image into 128x128 segments
-            // left to right, top to bottom in 8x8 chunks
-            // top pixels, divide index into 2 - 1 bit things
-            // roll all the lower bits (0-7) and upper bits (8-15)
-            // into 16 total bytes per 8x8 tile
-
-            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-            saveFileDialog1.Filter = "bin File (*.chr)|*.chr|All files (*.*)|*.*";
-            saveFileDialog1.Title = "Save the CHR";
-            saveFileDialog1.ShowDialog();
+        
+        public void Big_CHR_Loops()
+        {
             
-            if (saveFileDialog1.FileName != "")
+            // erase the arrays
+            for (int i = 0; i < 16384; i++)
             {
-                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+                CHR_All[i] = 0;
+                CHR_Reduced[i] = 0;
+            }
 
-                // do each 128x128 block separately
-                // always do the top left 128x128
-                c_offset2 = 0;
+
+            // do each 128x128 block separately
+            // always do the top left 128x128
+            int temp_offset = 0;
+            c_offset2 = 0;
+            count_tiles = 256;
+            for (int y = 0; y < 128; y += 8)
+            {
+                for (int x = 0; x < 128; x += 8)
+                {
+                    // process each 8x8 tile separately
+                    Dry_CHR_Loop(x, y);
+
+                    // have all 16 bytes, save them to file
+                    for (int i = 0; i < 16; i++)
+                    {
+                        //fs.WriteByte((byte)CHR_16bytes[i]);
+                        CHR_All[temp_offset++] = CHR_16bytes[i];
+                    }
+                }
+            }
+            // top right
+            if (image_width > 128)
+            {
+                c_offset2 = 128;
+                count_tiles += 256;
+
                 for (int y = 0; y < 128; y += 8)
                 {
-                    for(int x = 0; x < 128; x += 8)
+                    for (int x = 0; x < 128; x += 8)
                     {
                         // process each 8x8 tile separately
                         Dry_CHR_Loop(x, y);
 
                         // have all 16 bytes, save them to file
-                        for(int i = 0; i < 16; i++)
+                        for (int i = 0; i < 16; i++)
                         {
-                            fs.WriteByte((byte)CHR_16bytes[i]);
+                            //fs.WriteByte((byte)CHR_16bytes[i]);
+                            CHR_All[temp_offset++] = CHR_16bytes[i];
                         }
                     }
                 }
-                // top right
-                if(image_width > 127)
-                {
-                    c_offset2 = 128;
-
-                    for (int y = 0; y < 128; y += 8)
-                    {
-                        for (int x = 0; x < 128; x += 8)
-                        {
-                            // process each 8x8 tile separately
-                            Dry_CHR_Loop(x, y);
-
-                            // have all 16 bytes, save them to file
-                            for (int i = 0; i < 16; i++)
-                            {
-                                fs.WriteByte((byte)CHR_16bytes[i]);
-                            }
-                        }
-                    }
-                }
-                // bottom left
-                if(image_height > 127)
-                {
-                    c_offset2 = 32768;
-
-                    for (int y = 0; y < 128; y += 8)
-                    {
-                        for (int x = 0; x < 128; x += 8)
-                        {
-                            // process each 8x8 tile separately
-                            Dry_CHR_Loop(x, y);
-
-                            // have all 16 bytes, save them to file
-                            for (int i = 0; i < 16; i++)
-                            {
-                                fs.WriteByte((byte)CHR_16bytes[i]);
-                            }
-                        }
-                    }
-                }
-                // bottom right
-                if((image_width > 127) && (image_height > 127))
-                {
-                    c_offset2 = 128+32768;
-
-                    for (int y = 0; y < 128; y += 8)
-                    {
-                        for (int x = 0; x < 128; x += 8)
-                        {
-                            // process each 8x8 tile separately
-                            Dry_CHR_Loop(x, y);
-
-                            // have all 16 bytes, save them to file
-                            for (int i = 0; i < 16; i++)
-                            {
-                                fs.WriteByte((byte)CHR_16bytes[i]);
-                            }
-                        }
-                    }
-                }
-
-                fs.Close();
             }
-            label3.Focus();
+            // bottom left
+            if (image_height > 128)
+            {
+                c_offset2 = 32768;
+                count_tiles += 256;
 
+                for (int y = 0; y < 128; y += 8)
+                {
+                    for (int x = 0; x < 128; x += 8)
+                    {
+                        // process each 8x8 tile separately
+                        Dry_CHR_Loop(x, y);
+
+                        // have all 16 bytes, save them to file
+                        for (int i = 0; i < 16; i++)
+                        {
+                            //fs.WriteByte((byte)CHR_16bytes[i]);
+                            CHR_All[temp_offset++] = CHR_16bytes[i];
+                        }
+                    }
+                }
+            }
+            // bottom right
+            if ((image_width > 128) && (image_height > 128))
+            {
+                c_offset2 = 128 + 32768;
+                count_tiles += 256;
+
+                for (int y = 0; y < 128; y += 8)
+                {
+                    for (int x = 0; x < 128; x += 8)
+                    {
+                        // process each 8x8 tile separately
+                        Dry_CHR_Loop(x, y);
+
+                        // have all 16 bytes, save them to file
+                        for (int i = 0; i < 16; i++)
+                        {
+                            //fs.WriteByte((byte)CHR_16bytes[i]);
+                            CHR_All[temp_offset++] = CHR_16bytes[i];
+                        }
+                    }
+                }
+            }
+
+            label21.Text = count_tiles.ToString();
+
+            // now remove duplicate tiles
+            
+            tile_offset = 16; // skip the first tile
+            count_tiles2 = 1;
+            int count16 = 1;
+            nametable_index = 1;
+
+            // just copy the first tile
+            for (int i = 0; i < 16; i++)
+            {
+                CHR_Reduced[i] = CHR_All[i];
+            }
+            // Nametable[0] = 0; ...
+            // just blank them all
+            for(int i = 0; i < 960; i++)
+            {
+                Nametable[i] = 0;
+            }
+
+            // top left of image
+            // skip the first tile
+            for (int i = 1; i < 256; i++) // tiles in CHR_All
+            {
+                if (count16 == 16)
+                {
+                    count16 = 0;
+                    nametable_index += 16;
+                }
+
+                bool unique_tile = true;
+                for(int j = 0; j < count_tiles2; j++) // tiles in CHR_Reduced
+                {
+                    // check to see if the tile already exists in CHR_Reduced
+                    if (compare_one(i,j) == true)
+                    { // tiles are same
+                        unique_tile = false;
+                        Nametable[nametable_index] = j;
+                        break;
+                    }
+                }
+                if(unique_tile == true)
+                {
+                    copy_one(i);
+                    Nametable[nametable_index] = count_tiles2;
+                    count_tiles2++;
+                }
+                count16++;
+                nametable_index++;
+            }
+
+            
+            // top right
+            if (image_width > 128)
+            {
+                count16 = 0;
+                nametable_index = 16;
+                for (int i = 256; i < 512; i++) // tiles in CHR_All
+                {
+                    if (count16 == 16)
+                    {
+                        count16 = 0;
+                        nametable_index += 16;
+                    }
+
+                    bool unique_tile = true;
+                    for (int j = 0; j < count_tiles2; j++) // tiles in CHR_Reduced
+                    {
+                        // check to see if the tile already exists in CHR_Reduced
+                        if (compare_one(i, j) == true)
+                        { // tiles are same
+                            unique_tile = false;
+                            Nametable[nametable_index] = j;
+                            break;
+                        }
+                    }
+                    if (unique_tile == true)
+                    {
+                        copy_one(i);
+                        Nametable[nametable_index] = count_tiles2;
+                        count_tiles2++;
+                    }
+                    count16++;
+                    nametable_index++;
+                }
+            }
+            
+            // bottom left
+            if (image_height > 128)
+            {
+                int start_tile = 256;
+                int end_tile = 512;
+                if(image_width > 128)
+                {
+                    start_tile = 512;
+                    end_tile = 768;
+                }
+                count16 = 0;
+                nametable_index = 512;
+                for (int i = start_tile; i < end_tile; i++) // tiles in CHR_All
+                {
+                    if (count16 == 16)
+                    {
+                        count16 = 0;
+                        nametable_index += 16;
+                    }
+
+                    bool unique_tile = true;
+                    for (int j = 0; j < count_tiles2; j++) // tiles in CHR_Reduced
+                    {
+                        // check to see if the tile already exists in CHR_Reduced
+                        if (compare_one(i, j) == true)
+                        { // tiles are same
+                            unique_tile = false;
+                            Nametable[nametable_index] = j;
+                            break;
+                        }
+                    }
+                    if (unique_tile == true)
+                    {
+                        copy_one(i);
+                        Nametable[nametable_index] = count_tiles2;
+                        count_tiles2++;
+                    }
+                    count16++;
+                    nametable_index++;
+                }
+            }
+
+            // bottom right
+            if ((image_width > 128) && (image_height > 128))
+            {
+                count16 = 0;
+                nametable_index = 528;
+                for (int i = 768; i < 1024; i++) // tiles in CHR_All
+                {
+                    if (count16 == 16)
+                    {
+                        count16 = 0;
+                        nametable_index += 16;
+                    }
+
+                    bool unique_tile = true;
+                    for (int j = 0; j < count_tiles2; j++) // tiles in CHR_Reduced
+                    {
+                        // check to see if the tile already exists in CHR_Reduced
+                        if (compare_one(i, j) == true)
+                        { // tiles are same
+                            unique_tile = false;
+                            Nametable[nametable_index] = j;
+                            break;
+                        }
+                    }
+                    if (unique_tile == true)
+                    {
+                        copy_one(i);
+                        Nametable[nametable_index] = count_tiles2;
+                        count_tiles2++;
+                    }
+                    count16++;
+                    nametable_index++;
+                }
+            }
+            // double check, the Attribute table is zero
+            for(int i = 960; i < 1024; i++)
+            {
+                Nametable[i] = 0;
+            }
+
+            label22.Text = count_tiles2.ToString();
+        }
+
+        public bool compare_one(int i, int j)
+        {
+            int offset1 = i * 16;
+            int offset2 = j * 16;
+            for(int k = 0; k < 16; k++)
+            {
+                if(CHR_All[offset1] == CHR_Reduced[offset2])
+                {
+                    offset1++;
+                    offset2++;
+                }
+                else
+                {
+                    return false; // tiles are different
+                }
+            }
+            return true; // tiles are the same
+        }
+
+        public void copy_one(int tile_num)
+        {
+            // we found a unique tile, copy it to the CHR_Reduced array
+            int offset3 = tile_num * 16;
+            for(int i = 0; i < 16; i++)
+            {
+                CHR_Reduced[tile_offset++] = CHR_All[offset3++];
+            }
         }
 
         public void Dry_CHR_Loop(int x, int y)
@@ -626,7 +1012,7 @@ namespace NESIFIER
 
             // Out_Array = new int[65536]; // for CHR output
 
-            int index0, index8, temp_bits, bit1, bit2, reorder;
+            int index0, index8, temp_bits, bit1, bit2, CHR_byte; //, reorder;
             index0 = 0;
             index8 = 8;
             bit1 = 0;
@@ -636,9 +1022,9 @@ namespace NESIFIER
                 for (int x2 = 0; x2 < 8; x2++)
                 {
                     c_offset = ((y + y2) * 256) + x + x2 + c_offset2;
-                    reorder = Out_Indexes[Out_Array[c_offset] ];
-                    bit1 = reorder & 1;
-                    bit2 = reorder & 2;
+                    CHR_byte = Out_Array[c_offset];
+                    bit1 = CHR_byte & 1;
+                    bit2 = CHR_byte & 2;
                     bit2 = bit2 >> 1;
 
                     temp_bits = CHR_16bytes[index0];
@@ -664,7 +1050,7 @@ namespace NESIFIER
         { // import 12 bytes, 4 color x RGB
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             openFileDialog1.Title = "Open palette RGB";
-            openFileDialog1.Filter = "bin File (*.bin)|*.bin|All files (*.*)|*.*";
+            openFileDialog1.Filter = "pal File (*.pal)|*.pal|bin File (*.bin)|*.bin|All files (*.*)|*.*";
 
             int red, green, blue;
 
@@ -707,14 +1093,14 @@ namespace NESIFIER
         { // import 4 bytes, NES indexes
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             openFileDialog1.Title = "Open palette NES";
-            openFileDialog1.Filter = "bin File (*.bin)|*.bin|All files (*.*)|*.*";
+            openFileDialog1.Filter = "pal File (*.pal)|*.pal|bin File (*.bin)|*.bin|All files (*.*)|*.*";
 
             int val1, val2, val3, val4;
 
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 System.IO.FileStream fs = (System.IO.FileStream)openFileDialog1.OpenFile();
-                if (fs.Length == 4)
+                if ((fs.Length == 4) || (fs.Length == 16))
                 {
                     val1 = fs.ReadByte();
                     val2 = fs.ReadByte();
@@ -762,7 +1148,7 @@ namespace NESIFIER
                 }
                 else
                 {
-                    MessageBox.Show("Error. Expected 4 byte file.");
+                    MessageBox.Show("Error. Expected 4 or 16 byte file.");
                 }
 
                 fs.Close();
@@ -796,7 +1182,7 @@ namespace NESIFIER
         private void exportRGBToolStripMenuItem_Click(object sender, EventArgs e)
         { // export 12 bytes, 4 color x RGB
             SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-            saveFileDialog1.Filter = "bin File (*.bin)|*.bin|All files (*.*)|*.*";
+            saveFileDialog1.Filter = "pal File (*.pal)|*.pal|bin File (*.bin)|*.bin|All files (*.*)|*.*";
             saveFileDialog1.Title = "Save the palette RGB";
             saveFileDialog1.ShowDialog();
 
@@ -824,7 +1210,7 @@ namespace NESIFIER
         private void exportNESToolStripMenuItem_Click(object sender, EventArgs e)
         { // export 4 bytes, NES indexes
             SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-            saveFileDialog1.Filter = "bin File (*.bin)|*.bin|All files (*.*)|*.*";
+            saveFileDialog1.Filter = "pal File (*.pal)|*.pal|bin File (*.bin)|*.bin|All files (*.*)|*.*";
             saveFileDialog1.Title = "Save the palette RGB";
             saveFileDialog1.ShowDialog();
 
@@ -892,6 +1278,31 @@ namespace NESIFIER
             has_converted = 0;
             label6.Text = "Loaded";
 
+            // copy again, from revert to work
+            Rectangle copyRect = new Rectangle(0, 0, image_width, image_height);
+            using (Graphics g2 = Graphics.FromImage(work_bmp))
+            {
+                g2.DrawImage(revert_bmp, copyRect, copyRect, GraphicsUnit.Pixel);
+            }
+
+            Color temp_color = Color.Black;
+            // copy pixel by pixel, work to left
+            for (int xx = 0; xx < MAX_WIDTH; xx++)
+            {
+                for (int yy = 0; yy < MAX_HEIGHT; yy++)
+                {
+                    if ((xx < image_width) && (yy < image_height))
+                    {
+                        temp_color = work_bmp.GetPixel(xx, yy);
+                    }
+                    else
+                    {
+                        temp_color = Color.Gray;
+                    }
+                    left_bmp.SetPixel(xx, yy, temp_color);
+                }
+            }
+
             pictureBox1.Image = left_bmp;
             pictureBox1.Refresh();
 
@@ -899,7 +1310,7 @@ namespace NESIFIER
         }
 
         private void button8_Click(object sender, EventArgs e)
-        { // revert and force grayscale
+        { // force grayscale
             if (has_loaded == 0)
             {
                 label3.Focus();
@@ -926,13 +1337,13 @@ namespace NESIFIER
             {
                 for (int x = 0; x < image_width; x++)
                 {
-                    tempcolor = orig_bmp.GetPixel(x, y);
+                    tempcolor = work_bmp.GetPixel(x, y);
                     redf = tempcolor.R;
                     greenf = tempcolor.G;
                     bluef = tempcolor.B;
                     total = (int)((0.3 * redf) + (0.59 * greenf) + (0.11 * bluef));
                     tempcolor = Color.FromArgb(total, total, total);
-                    orig_bmp.SetPixel(x, y, tempcolor);
+                    work_bmp.SetPixel(x, y, tempcolor);
                     left_bmp.SetPixel(x, y, tempcolor); // copy to both
                 }
             }
@@ -973,19 +1384,27 @@ namespace NESIFIER
                 // lots of redundant code...
                 // todo, make these 2 functions into 1 common function
 
+                if ((temp_bmp.Height < 8) || (temp_bmp.Width < 8))
+                {
+                    MessageBox.Show("Error. File too small?");
+                    temp_bmp.Dispose();
+                    return;
+                }
+
                 has_loaded = 1;
                 has_converted = 0;
 
 
                 float ratio1 = 1.0F;
                 float ratio2 = 1.0F;
-                int resize_width = MAX_WIDTH, resize_height = MAX_HEIGHT;
+                int resize_width = user_width;
+                int resize_height = user_height;
                 int need_resize = 0;
 
-                if (temp_bmp.Width > MAX_WIDTH)
+                if (temp_bmp.Width > user_width)
                 {
-                    image_width = MAX_WIDTH;
-                    ratio1 = temp_bmp.Width / (float)MAX_WIDTH;
+                    image_width = user_width;
+                    ratio1 = temp_bmp.Width / (float)user_width;
                     need_resize = 1;
                 }
                 else
@@ -993,10 +1412,10 @@ namespace NESIFIER
                     image_width = temp_bmp.Width;
                 }
 
-                if (temp_bmp.Height > MAX_HEIGHT)
+                if (temp_bmp.Height > user_height)
                 {
-                    image_height = MAX_HEIGHT;
-                    ratio2 = temp_bmp.Height / (float)MAX_HEIGHT;
+                    image_height = user_height;
+                    ratio2 = temp_bmp.Height / (float)user_height;
                     need_resize = 1;
                 }
                 else
@@ -1020,7 +1439,7 @@ namespace NESIFIER
                     }
 
                     // resize to fit
-                    using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                    using (Graphics g2 = Graphics.FromImage(work_bmp))
                     {
                         g2.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         g2.DrawImage(temp_bmp, 0, 0, resize_width, resize_height);
@@ -1033,12 +1452,19 @@ namespace NESIFIER
                 {
                     // copy the bitmap, crop but don't resize
                     Rectangle copyRect = new Rectangle(0, 0, image_width, image_height);
-                    using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                    using (Graphics g2 = Graphics.FromImage(work_bmp))
                     {
                         g2.DrawImage(temp_bmp, copyRect, copyRect, GraphicsUnit.Pixel);
                     }
 
 
+                }
+
+                // copy again
+                Rectangle copyRect2 = new Rectangle(0, 0, image_width, image_height);
+                using (Graphics g2 = Graphics.FromImage(revert_bmp))
+                {
+                    g2.DrawImage(work_bmp, copyRect2, copyRect2, GraphicsUnit.Pixel);
                 }
 
                 Color temp_color = Color.Black;
@@ -1050,7 +1476,7 @@ namespace NESIFIER
                     {
                         if ((xx < image_width) && (yy < image_height))
                         {
-                            temp_color = orig_bmp.GetPixel(xx, yy);
+                            temp_color = work_bmp.GetPixel(xx, yy);
                         }
                         else
                         {
@@ -1066,11 +1492,11 @@ namespace NESIFIER
                 pictureBox1.Refresh();
 
                 // show the width and height
-                label7.Text = image_width.ToString();
-                label8.Text = image_height.ToString();
+                label4.Text = image_width.ToString();
+                label26.Text = image_height.ToString();
 
                 label6.Text = "Loaded";
-
+                temp_bmp.Dispose();
             }
             else
             {
@@ -1112,7 +1538,7 @@ namespace NESIFIER
             {
                 for (int xx = 0; xx < image_width; xx++)
                 {
-                    tempcolor = orig_bmp.GetPixel(xx, yy);
+                    tempcolor = work_bmp.GetPixel(xx, yy);
 
                     tempcolor = ToNES(tempcolor, -1);
 
@@ -1370,6 +1796,284 @@ namespace NESIFIER
             }
         }
 
+        private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Return)
+            {
+                u_width_set();
+
+                e.Handled = true; // prevent ding on return press
+
+                label3.Focus();
+            }
+        }
+
+        public void u_width_set()
+        {
+            string str = textBox2.Text;
+            int outvar = 0;
+            if (int.TryParse(str, out outvar))
+            {
+                if (outvar > 256) outvar = 256;
+                if (outvar < 8) outvar = 8;
+                user_width = outvar;
+                textBox2.Text = outvar.ToString();
+            }
+            else
+            {
+                // revert back to previous
+                textBox2.Text = user_width.ToString();
+            }
+        }
+
+        public void u_height_set()
+        {
+            string str = textBox3.Text;
+            int outvar = 0;
+            if (int.TryParse(str, out outvar))
+            {
+                if (outvar > 240) outvar = 240;
+                if (outvar < 8) outvar = 8;
+                user_height = outvar;
+                textBox3.Text = outvar.ToString();
+            }
+            else
+            {
+                // revert back to previous
+                textBox3.Text = user_height.ToString();
+            }
+        }
+
+        private void textBox3_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Return)
+            {
+                u_height_set();
+
+                e.Handled = true; // prevent ding on return press
+
+                label3.Focus();
+            }
+        }
+
+        private void saveRawCHRToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (has_loaded == 0)
+            {
+                MessageBox.Show("Image hasn't loaded yet.");
+                label3.Focus();
+                return;
+            }
+            if (has_converted == 0)
+            {
+                MessageBox.Show("Image hasn't converted yet.");
+                label3.Focus();
+                return;
+            }
+
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "bin File (*.chr)|*.chr|All files (*.*)|*.*";
+            saveFileDialog1.Title = "Save the CHR";
+            saveFileDialog1.ShowDialog();
+
+            if (saveFileDialog1.FileName != "")
+            {
+                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+
+                int num_bytes = 16 * count_tiles;
+                for (int i = 0; i < num_bytes; i++)
+                {
+                    fs.WriteByte((byte)CHR_All[i]);
+                }
+
+                fs.Close();
+            }
+            label3.Focus();
+        }
+
+        private void saveFinalCHRToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (has_loaded == 0)
+            {
+                MessageBox.Show("Image hasn't loaded yet.");
+                label3.Focus();
+                return;
+            }
+            if (has_converted == 0)
+            {
+                MessageBox.Show("Image hasn't converted yet.");
+                label3.Focus();
+                return;
+            }
+
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "bin File (*.chr)|*.chr|DZ4 (*.dz4)|*.dz4";
+            saveFileDialog1.Title = "Save the CHR";
+            saveFileDialog1.ShowDialog();
+
+            if (saveFileDialog1.FileName != "")
+            {
+                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+
+                string ext = System.IO.Path.GetExtension(saveFileDialog1.FileName);
+
+                int num_bytes = 16 * count_tiles2;
+                if (checkBox2.Checked == true)
+                { // pad up to nearest $1000
+                    num_bytes += 0xfff;
+                    num_bytes &= 0xf000;
+                    if (num_bytes > 16384) num_bytes = 16384; // max
+                }
+                
+
+                if (ext == ".chr")
+                {
+                    
+                    for (int i = 0; i < num_bytes; i++)
+                    {
+                        fs.WriteByte((byte)CHR_Reduced[i]);
+                    }
+
+                    /*if (checkBox2.Checked == true) // pad to nearest $1000
+                    {
+                        num_bytes = num_bytes & 0xfff;
+                        num_bytes = 0x1000 - num_bytes;
+                        for (int i = 0; i < num_bytes; i++)
+                        {
+                            fs.WriteByte(0);
+                        }
+                    }*/
+                }
+                else // dz4 compressed
+                {
+                    out_size = num_bytes;
+                    if (CompressIt(CHR_Reduced, out_size) == 1)
+                    {
+                        // now in rle_array, rle_size
+                        for (int i = 0; i < rle_size; i++)
+                        {
+                            fs.WriteByte(rle_array[i]);
+                        }
+                    }
+                    // if failed, it should have given a warning
+                }
+                
+
+                fs.Close();
+            }
+            label3.Focus();
+        }
+
+        private void saveNametableToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (has_loaded == 0)
+            {
+                MessageBox.Show("Image hasn't loaded yet.");
+                label3.Focus();
+                return;
+            }
+            if (has_converted == 0)
+            {
+                MessageBox.Show("Image hasn't converted yet.");
+                label3.Focus();
+                return;
+            }
+
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "bin File (*.nam)|*.nam|DZ4 (*.dz4)|*.dz4";
+            saveFileDialog1.Title = "Save the Nametable";
+            saveFileDialog1.ShowDialog();
+
+            if (saveFileDialog1.FileName != "")
+            {
+                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+
+                string ext = System.IO.Path.GetExtension(saveFileDialog1.FileName);
+
+                if (ext == ".nam")
+                {
+                    for (int i = 0; i < 1024; i++)
+                    {
+                        fs.WriteByte((byte)Nametable[i]);
+                        // NOTE - this will only work right for
+                        // tile count <= 256 because it removes upper byte
+                    }
+                }
+                else //dz4 compressed
+                {
+                    out_size = 1024;
+                    if (CompressIt(Nametable, out_size) == 1)
+                    {
+                        // now in rle_array, rle_size
+                        for (int i = 0; i < rle_size; i++)
+                        {
+                            fs.WriteByte(rle_array[i]);
+                        }
+                    }
+                    // if failed, it should have given a warning
+                }
+
+                if (count_tiles2 > 256)
+                {
+                    MessageBox.Show("Warning. Over 256 unique tiles.");
+                }
+
+                fs.Close();
+            }
+            label3.Focus();
+        }
+
+        private void saveNES16BytesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "pal File (*.pal)|*.pal|bin File (*.bin)|*.bin|All files (*.*)|*.*";
+            saveFileDialog1.Title = "Save the palette RGB";
+            saveFileDialog1.ShowDialog();
+
+            if (saveFileDialog1.FileName != "")
+            {
+                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+                int NES_val = Pal_to_NES(color1val);
+                int Main_val = NES_val;
+                fs.WriteByte((byte)NES_val);
+                NES_val = Pal_to_NES(color2val);
+                fs.WriteByte((byte)NES_val);
+                NES_val = Pal_to_NES(color3val);
+                fs.WriteByte((byte)NES_val);
+                NES_val = Pal_to_NES(color4val);
+                fs.WriteByte((byte)NES_val);
+
+                for(int i = 0; i < 3; i++)
+                {
+                    fs.WriteByte((byte)Main_val);
+                    fs.WriteByte(0x0f); // black
+                    fs.WriteByte(0x0f); // black
+                    fs.WriteByte(0x0f); // black
+                }
+
+                fs.Close();
+            }
+            label3.Focus();
+        }
+
+        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            label3.Focus();
+            // bug fix on the Leave events below...
+            // they weren't firing on menu click events
+        }
+
+        private void textBox2_Leave(object sender, EventArgs e)
+        {
+            u_width_set();
+            label3.Focus();
+        }
+
+        private void textBox3_Leave(object sender, EventArgs e)
+        {
+            u_height_set();
+            label3.Focus();
+        }
 
         private void label3_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         { // check if Ctrl+V is pressed
@@ -1378,8 +2082,10 @@ namespace NESIFIER
 
             if (e.KeyCode == Keys.V)
             {
-                paste_clipboard();
                 label3.Focus();
+
+                paste_clipboard();
+                
             }
         }
 
@@ -1607,32 +2313,40 @@ namespace NESIFIER
 
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
+                    Bitmap temp_bmp = new Bitmap(dlg.FileName);
+
+                    if ((temp_bmp.Height < 8) || (temp_bmp.Width < 8))
+                    {
+                        MessageBox.Show("Error. File too small?");
+                        dlg.Dispose();
+                        return;
+                    }
+
                     has_loaded = 1;
                     has_converted = 0;
 
-
-                    Bitmap temp_bmp = new Bitmap(dlg.FileName);
-
                     float ratio1 = 1.0F;
                     float ratio2 = 1.0F;
-                    int resize_width = MAX_WIDTH, resize_height = MAX_HEIGHT;
+                    int resize_width = user_width;//MAX_WIDTH;
+                    int resize_height = user_height;//MAX_HEIGHT;
                     int need_resize = 0;
 
-                    if (temp_bmp.Width > MAX_WIDTH)
+                    // replaced MAX_WIDTH with user_width
+                    if (temp_bmp.Width > user_width)
                     {
-                        image_width = MAX_WIDTH;
-                        ratio1 = temp_bmp.Width / (float)MAX_WIDTH;
+                        image_width = user_width;
+                        ratio1 = temp_bmp.Width / (float)user_width;
                         need_resize = 1;
                     }
                     else
                     {
                         image_width = temp_bmp.Width;
                     }
-
-                    if (temp_bmp.Height > MAX_HEIGHT)
+                    // replaced MAX_HEIGHT with user_height
+                    if (temp_bmp.Height > user_height)
                     {
-                        image_height = MAX_HEIGHT;
-                        ratio2 = temp_bmp.Height / (float)MAX_HEIGHT;
+                        image_height = user_height;
+                        ratio2 = temp_bmp.Height / (float)user_height;
                         need_resize = 1;
                     }
                     else
@@ -1654,7 +2368,7 @@ namespace NESIFIER
                             resize_height = (int)Math.Round(temp_bmp.Height / ratio2);
                         }
 
-                        using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                        using (Graphics g2 = Graphics.FromImage(work_bmp))
                         {
                             g2.InterpolationMode = InterpolationMode.HighQualityBicubic;
                             g2.DrawImage(temp_bmp, 0, 0, resize_width, resize_height);
@@ -1667,14 +2381,20 @@ namespace NESIFIER
                     {
                         // copy the bitmap, crop but don't resize
                         Rectangle copyRect = new Rectangle(0, 0, image_width, image_height);
-                        using (Graphics g2 = Graphics.FromImage(orig_bmp))
+                        using (Graphics g2 = Graphics.FromImage(work_bmp))
                         {
                             g2.DrawImage(temp_bmp, copyRect, copyRect, GraphicsUnit.Pixel);
                         }
 
                     }
+                    
 
-
+                    // copy again
+                    Rectangle copyRect2 = new Rectangle(0, 0, image_width, image_height);
+                    using (Graphics g2 = Graphics.FromImage(revert_bmp))
+                    {
+                        g2.DrawImage(work_bmp, copyRect2, copyRect2, GraphicsUnit.Pixel);
+                    }
 
                     Color temp_color = Color.Black;
 
@@ -1685,7 +2405,7 @@ namespace NESIFIER
                         {
                             if((xx < image_width) && (yy < image_height))
                             {
-                                temp_color = orig_bmp.GetPixel(xx, yy);
+                                temp_color = work_bmp.GetPixel(xx, yy);
                             }
                             else
                             {
@@ -1701,11 +2421,12 @@ namespace NESIFIER
                     pictureBox1.Refresh();
 
                     // show the width and height
-                    label7.Text = image_width.ToString();
-                    label8.Text = image_height.ToString();
+                    label4.Text = image_width.ToString();
+                    label26.Text = image_height.ToString();
 
                     label6.Text = "Loaded";
 
+                    temp_bmp.Dispose();
                 }
                 // it was locking up files, so...
                 dlg.Dispose();
@@ -1715,41 +2436,7 @@ namespace NESIFIER
         }
 
         
-        private void button4_Click(object sender, EventArgs e)
-        {
-            Out_Indexes[0] += 1;
-            Out_Indexes[0] &= 3;
-            button4.Text = Out_Indexes[0].ToString();
-
-            label3.Focus();
-        }
-
-        private void button5_Click(object sender, EventArgs e)
-        {
-            Out_Indexes[1] += 1;
-            Out_Indexes[1] &= 3;
-            button5.Text = Out_Indexes[1].ToString();
-
-            label3.Focus();
-        }
-
-        private void button6_Click(object sender, EventArgs e)
-        {
-            Out_Indexes[2] += 1;
-            Out_Indexes[2] &= 3;
-            button6.Text = Out_Indexes[2].ToString();
-
-            label3.Focus();
-        }
-
-        private void button7_Click(object sender, EventArgs e)
-        {
-            Out_Indexes[3] += 1;
-            Out_Indexes[3] &= 3;
-            button7.Text = Out_Indexes[3].ToString();
-
-            label3.Focus();
-        }
+        
 
 
     }
