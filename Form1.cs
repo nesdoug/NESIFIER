@@ -14,15 +14,15 @@ namespace NESIFIER
 {
     public partial class Form1 : Form
     {
-        // TODO LIST
+        // Programmer thoughts
+        // a lot of this code is dulplicate of other code and
+        // should be combined into common functions
 
-        // write some test ca65 project
-        // test pad CHR
-        // dz4
-        // readme
-        // clean up folders
-        // post it
+        // other things should be refactored... particularly
+        // the conversion to dithering, which is slow and convoluted
 
+        // todo -- lossy ?
+        // not sure how to do that
 
 
         public const int FLOYD_STEIN = 0;
@@ -61,6 +61,9 @@ namespace NESIFIER
         public static int dither_factor = 0;
         public static int dither_adjust = 0;
         public static double dither_db = 0.0;
+        public static int bright_adj = 0;
+        public static int contrast_adj = 0;
+        public static int total_adj = 0;
 
         // RGB palette, with black put at 0 and grays moved down
         // 13 x 4 = 52 colors x 3 = 156
@@ -136,6 +139,7 @@ namespace NESIFIER
 
         public static Bitmap work_bmp = new Bitmap(256, 256);
         public static Bitmap revert_bmp = new Bitmap(256, 256);
+        public static Bitmap bright_bmp = new Bitmap(256, 256); // brightness adjust
         public static Bitmap conv_bmp = new Bitmap(256, 256);
         public static Bitmap left_bmp = new Bitmap(256, 256);
         public static Bitmap right_bmp = new Bitmap(256, 256); // dither scratchpad
@@ -161,6 +165,7 @@ namespace NESIFIER
         public static int count_tiles, count_tiles2; // 2 is duplicate tiles removed
         public static int tile_offset, nametable_index;
         public static int out_size;
+        public static int remember_width, remember_height;
 
         public Form1()
         {
@@ -211,9 +216,9 @@ namespace NESIFIER
             sel_color = Color.FromArgb(final_r, final_g, final_b);
             pictureBox7.BackColor = sel_color;
             sel_color_val = remember_index;
-            label14.Text = sel_color.R.ToString() + ", " +
+            /*label14.Text = sel_color.R.ToString() + ", " +
                 sel_color.G.ToString() + ", " +
-                sel_color.B.ToString();
+                sel_color.B.ToString();*/
 
             label3.Focus();
         }
@@ -225,9 +230,9 @@ namespace NESIFIER
             {
                 sel_color_val = color1val;
                 sel_color = color1;
-                label14.Text = sel_color.R.ToString() + ", " +
+                /*label14.Text = sel_color.R.ToString() + ", " +
                     sel_color.G.ToString() + ", " +
-                    sel_color.B.ToString();
+                    sel_color.B.ToString();*/
                 string nes_str = GetNesVal(sel_color_val);
                 label13.Text = nes_str;
                 pictureBox7.BackColor = sel_color;
@@ -239,9 +244,11 @@ namespace NESIFIER
                 pictureBox3.BackColor = color1;
                 label9.Text = label13.Text;
 
-                label15.Text = color1.R.ToString() + ", " +
+                /*label15.Text = color1.R.ToString() + ", " +
                     color1.G.ToString() + ", " +
-                    color1.B.ToString();
+                    color1.B.ToString();*/
+
+                reconvert();
             }
 
             label3.Focus();
@@ -254,25 +261,27 @@ namespace NESIFIER
             {
                 sel_color_val = color2val;
                 sel_color = color2;
-                label14.Text = sel_color.R.ToString() + ", " +
+                /*label14.Text = sel_color.R.ToString() + ", " +
                     sel_color.G.ToString() + ", " +
-                    sel_color.B.ToString();
+                    sel_color.B.ToString();*/
                 string nes_str = GetNesVal(sel_color_val);
                 label13.Text = nes_str;
                 pictureBox7.BackColor = sel_color;
             }
-            else 
+            else  // left click
             {
                 color2val = sel_color_val;
                 color2 = sel_color;
                 pictureBox4.BackColor = color2;
                 label10.Text = label13.Text;
 
-                label16.Text = color2.R.ToString() + ", " +
+                /*label16.Text = color2.R.ToString() + ", " +
                     color2.G.ToString() + ", " +
-                    color2.B.ToString();
+                    color2.B.ToString();*/
+
+                reconvert();
             }
-            
+
             label3.Focus();
         }
 
@@ -283,23 +292,25 @@ namespace NESIFIER
             {
                 sel_color_val = color3val;
                 sel_color = color3;
-                label14.Text = sel_color.R.ToString() + ", " +
+                /*label14.Text = sel_color.R.ToString() + ", " +
                     sel_color.G.ToString() + ", " +
-                    sel_color.B.ToString();
+                    sel_color.B.ToString();*/
                 string nes_str = GetNesVal(sel_color_val);
                 label13.Text = nes_str;
                 pictureBox7.BackColor = sel_color;
             }
-            else 
+            else  // left click
             {
                 color3val = sel_color_val;
                 color3 = sel_color;
                 pictureBox5.BackColor = color3;
                 label11.Text = label13.Text;
 
-                label17.Text = color3.R.ToString() + ", " +
+                /*label17.Text = color3.R.ToString() + ", " +
                     color3.G.ToString() + ", " +
-                    color3.B.ToString();
+                    color3.B.ToString();*/
+
+                reconvert();
             }
 
             label3.Focus();
@@ -312,25 +323,27 @@ namespace NESIFIER
             {
                 sel_color_val = color4val;
                 sel_color = color4;
-                label14.Text = sel_color.R.ToString() + ", " +
+                /*label14.Text = sel_color.R.ToString() + ", " +
                     sel_color.G.ToString() + ", " +
-                    sel_color.B.ToString();
+                    sel_color.B.ToString();*/
                 string nes_str = GetNesVal(sel_color_val);
                 label13.Text = nes_str;
                 pictureBox7.BackColor = sel_color;
             }
-            else
+            else  // left click
             {
                 color4val = sel_color_val;
                 color4 = sel_color;
                 pictureBox6.BackColor = color4;
                 label12.Text = label13.Text;
 
-                label18.Text = color4.R.ToString() + ", " +
+                /*label18.Text = color4.R.ToString() + ", " +
                     color4.G.ToString() + ", " +
-                    color4.B.ToString();
+                    color4.B.ToString();*/
+
+                reconvert();
             }
-            
+
             label3.Focus();
         }
 
@@ -342,33 +355,61 @@ namespace NESIFIER
                 return;
             }
 
+            do_convert();
+
+            label3.Focus();
+        }
+
+
+
+        public void reconvert()
+        {
+            if (has_loaded == 0) return;
+
+            if (has_converted == 0) return;
+
+            do_convert();
+        }
+
+
+
+        public void do_convert()
+        {
+            if (has_loaded == 0) return;
+
             has_converted = 1;
 
             label6.Text = "Converted";
 
             int red, green, blue, bayer_val;
             int red_dif, green_dif, blue_dif;
-            
+
             // blank the out array (CHR indexes)
-            for(int i = 0; i < 65536; i++)
+            for (int i = 0; i < 65536; i++)
             {
                 Out_Array[i] = 0;
             }
 
-            // convert the work_bmp to conv_bmp, copy to picturebox
+            // blank
 
             for (int xx = 0; xx < MAX_WIDTH; xx++)
             {
                 for (int yy = 0; yy < MAX_HEIGHT; yy++)
                 {
-                    conv_bmp.SetPixel(xx, yy, Color.Gray);
+                    conv_bmp.SetPixel(xx, yy, Color.Black);
                 }
             }
 
+
+            
+
             Color tempcolor = Color.Black;
             Color tempcolor2 = Color.Black;
+
+            // make sure work is bright adjusted
+
             dither_db = dither_factor / 10.0;
-            dither_adjust = (int)(dither_db * 32.0); 
+            dither_adjust = (int)(dither_db * 32.0);
 
             //copy orig to right_bmp, dither on it.
             if (comboBox1.SelectedIndex == FLOYD_STEIN)
@@ -376,10 +417,10 @@ namespace NESIFIER
                 //right_bmp
                 for (int yy = 0; yy < image_height; yy++)
                 {
-                    for (int xx = 0; xx < image_width; xx++) 
+                    for (int xx = 0; xx < image_width; xx++)
                     {
                         // do the dither later
-                        tempcolor = work_bmp.GetPixel(xx, yy);
+                        tempcolor = bright_bmp.GetPixel(xx, yy);
                         right_bmp.SetPixel(xx, yy, tempcolor);
                     }
                 }
@@ -387,13 +428,13 @@ namespace NESIFIER
             else if (comboBox1.SelectedIndex == BAYER8)// BAYER8
             {
                 // do the dither now
-                for (int yy = 0; yy < image_height; yy++) 
+                for (int yy = 0; yy < image_height; yy++)
                 {
                     for (int xx = 0; xx < image_width; xx++)
                     {
-                        if(dither_factor > 0)
+                        if (dither_factor > 0)
                         {
-                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            tempcolor = bright_bmp.GetPixel(xx, yy);
                             red = tempcolor.R - dither_adjust; // keep it from lightening
                             green = tempcolor.G - dither_adjust;
                             blue = tempcolor.B - dither_adjust;
@@ -412,10 +453,10 @@ namespace NESIFIER
                         }
                         else
                         { // no dither factor
-                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            tempcolor = bright_bmp.GetPixel(xx, yy);
                             right_bmp.SetPixel(xx, yy, tempcolor);
                         }
-                        
+
                     }
                 }
             }
@@ -426,7 +467,7 @@ namespace NESIFIER
                 {
                     for (int xx = 0; xx < image_width; xx++)
                     {
-                        tempcolor = work_bmp.GetPixel(xx, yy);
+                        tempcolor = bright_bmp.GetPixel(xx, yy);
                         red = tempcolor.R;
                         green = tempcolor.G;
                         blue = tempcolor.B;
@@ -461,8 +502,8 @@ namespace NESIFIER
                     {
                         if (dither_factor > 0)
                         {
-                            tempcolor = work_bmp.GetPixel(xx, yy);
-                            red = tempcolor.R; 
+                            tempcolor = bright_bmp.GetPixel(xx, yy);
+                            red = tempcolor.R;
                             green = tempcolor.G;
                             blue = tempcolor.B;
                             bayer_val = BAD_MATRIX[xx % 2, yy % 2];
@@ -480,7 +521,7 @@ namespace NESIFIER
                         }
                         else
                         { // no dither factor
-                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            tempcolor = bright_bmp.GetPixel(xx, yy);
                             right_bmp.SetPixel(xx, yy, tempcolor);
                         }
                     }
@@ -494,7 +535,7 @@ namespace NESIFIER
                     {
                         if (dither_factor > 0)
                         {
-                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            tempcolor = bright_bmp.GetPixel(xx, yy);
                             red = tempcolor.R;
                             green = tempcolor.G;
                             blue = tempcolor.B;
@@ -513,13 +554,13 @@ namespace NESIFIER
                         }
                         else
                         { // no dither factor
-                            tempcolor = work_bmp.GetPixel(xx, yy);
+                            tempcolor = bright_bmp.GetPixel(xx, yy);
                             right_bmp.SetPixel(xx, yy, tempcolor);
                         }
                     }
                 }
             }
-            
+
 
             dither_db = dither_factor / 12.0; // 10 seemed too much
 
@@ -550,14 +591,12 @@ namespace NESIFIER
                 }
             }
 
-            
+
             // copy right_bmp to conv_bmp
             pictureBox1.Image = conv_bmp;
 
             // process the CHR array also
             Big_CHR_Loops();
-
-            label3.Focus();
         }
 
 
@@ -648,14 +687,14 @@ namespace NESIFIER
         {
             int best_index = 0;
             int lowest_diff = 999999;
-            int dR, dG, dB, color_diff;
+            int dR, dG, dB, color_diff, d_bright;
 
             dR = tempcolor.R - color1.R;
             dG = tempcolor.G - color1.G;
             dB = tempcolor.B - color1.B;
-            // note, the formula is supposed to take the Math.Sqrt()
-            // of this but that step has been removed as unneeded.
-            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+            d_bright = (Math.Abs(dR) + Math.Abs(dG) + Math.Abs(dB)) / 3;
+
+            color_diff = (dR * dR) + (dG * dG) + (dB * dB) + (d_bright * d_bright);
             
             if (color_diff < lowest_diff)
             {
@@ -665,8 +704,12 @@ namespace NESIFIER
             dR = tempcolor.R - color2.R;
             dG = tempcolor.G - color2.G;
             dB = tempcolor.B - color2.B;
-            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
-            
+            d_bright = (Math.Abs(dR) + Math.Abs(dG) + Math.Abs(dB)) / 3;
+            // I changed this to fix an issue of some colors not being
+            // chosen at all. This adds brightness as a factor.
+
+            color_diff = (dR * dR) + (dG * dG) + (dB * dB) + (d_bright * d_bright);
+
             if (color_diff < lowest_diff)
             {
                 lowest_diff = color_diff;
@@ -676,8 +719,10 @@ namespace NESIFIER
             dR = tempcolor.R - color3.R;
             dG = tempcolor.G - color3.G;
             dB = tempcolor.B - color3.B;
-            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
+            d_bright = (Math.Abs(dR) + Math.Abs(dG) + Math.Abs(dB)) / 3;
             
+            color_diff = (dR * dR) + (dG * dG) + (dB * dB) + (d_bright * d_bright);
+
             if (color_diff < lowest_diff)
             {
                 lowest_diff = color_diff;
@@ -687,8 +732,10 @@ namespace NESIFIER
             dR = tempcolor.R - color4.R;
             dG = tempcolor.G - color4.G;
             dB = tempcolor.B - color4.B;
-            color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
-            
+            d_bright = (Math.Abs(dR) + Math.Abs(dG) + Math.Abs(dB)) / 3;
+
+            color_diff = (dR * dR) + (dG * dG) + (dB * dB) + (d_bright * d_bright);
+
             if (color_diff < lowest_diff)
             {
                 lowest_diff = color_diff;
@@ -1275,8 +1322,149 @@ namespace NESIFIER
                 return;
             }
 
+            revert_image();
+
+            label3.Focus();
+        }
+
+
+        public void Adjust_BMP()
+        {
+            //adjust the brightness and contrast
+
+            Color temp_color = Color.Black;
+
+            int bright_adj2 = bright_adj * 2;
+
+            if (contrast_adj == 0) // no contrast adjustment
+            {
+                for (int xx = 0; xx < image_width; xx++)
+                {
+                    for (int yy = 0; yy < image_height; yy++)
+                    {
+                        temp_color = work_bmp.GetPixel(xx, yy);
+                        int red = temp_color.R;
+                        int green = temp_color.G;
+                        int blue = temp_color.B;
+                        red += bright_adj2;
+                        red = Math.Max(0, red); // clamp min max
+                        red = Math.Min(255, red);
+                        green += bright_adj2;
+                        green = Math.Max(0, green); // clamp min max
+                        green = Math.Min(255, green);
+                        blue += bright_adj2;
+                        blue = Math.Max(0, blue); // clamp min max
+                        blue = Math.Min(255, blue);
+                        bright_bmp.SetPixel(xx, yy, Color.FromArgb(red, green, blue));
+                    }
+                }
+            }
+            if(contrast_adj > 0)
+            {
+                // increase contrast
+                float contrastF = (float)contrast_adj / 16F;
+                float tempF;
+
+                for (int xx = 0; xx < image_width; xx++)
+                {
+                    for (int yy = 0; yy < image_height; yy++)
+                    {
+                        temp_color = work_bmp.GetPixel(xx, yy);
+                        int red = temp_color.R;
+                        int green = temp_color.G;
+                        int blue = temp_color.B;
+                        int total_val = (red + green + blue + 1) / 3;
+                        total_val -= 128;
+                        tempF = (float)total_val * contrastF;
+                        total_val = (int)tempF;
+                        
+                        red += total_val; // contrast add value
+                        red += bright_adj2;
+                        red = Math.Max(0, red); // clamp min max
+                        red = Math.Min(255, red);
+
+                        green += total_val; // contrast add value
+                        green += bright_adj2;
+                        green = Math.Max(0, green); // clamp min max
+                        green = Math.Min(255, green);
+
+                        blue += total_val; // contrast add value
+                        blue += bright_adj2;
+                        blue = Math.Max(0, blue); // clamp min max
+                        blue = Math.Min(255, blue);
+                        bright_bmp.SetPixel(xx, yy, Color.FromArgb(red, green, blue));
+                    }
+                }
+            }
+            if(contrast_adj < 0)
+            {
+                // get closer to gray
+                float multiplier1 = 0F - (float)contrast_adj; // was negative, now 0.5 - 100
+                multiplier1 = multiplier1 / 100F; // now 0.005 - 1.00
+                float multiplier2 = 1F - multiplier1; // 0.00 - 0.995
+                float gray_val = 127F * multiplier1;
+                float tempF;
+                for (int xx = 0; xx < image_width; xx++)
+                {
+                    for (int yy = 0; yy < image_height; yy++)
+                    {
+                        temp_color = work_bmp.GetPixel(xx, yy);
+                        int red = temp_color.R;
+                        int green = temp_color.G;
+                        int blue = temp_color.B;
+                        tempF = (float)red * multiplier2;
+                        tempF = (tempF + gray_val);
+                        red = (int)tempF;
+                        red += bright_adj2;
+                        red = Math.Max(0, red); // clamp min max
+                        red = Math.Min(255, red);
+
+                        tempF = (float)green * multiplier2;
+                        tempF = (tempF + gray_val);
+                        green = (int)tempF;
+                        green += bright_adj2;
+                        green = Math.Max(0, green); // clamp min max
+                        green = Math.Min(255, green);
+
+                        tempF = (float)blue * multiplier2;
+                        tempF = (tempF + gray_val);
+                        blue = (int)tempF;
+                        blue += bright_adj2;
+                        blue = Math.Max(0, blue); // clamp min max
+                        blue = Math.Min(255, blue);
+                        bright_bmp.SetPixel(xx, yy, Color.FromArgb(red, green, blue));
+                    }
+                }
+            }
+            
+        }
+
+        public void Copy_2_Picbox()
+        {
+            Color temp_color = Color.Black;
+
+            // copy pixel by pixel, work to left
+            for (int xx = 0; xx < image_width; xx++)
+            {
+                for (int yy = 0; yy < image_height; yy++)
+                {
+                    temp_color = bright_bmp.GetPixel(xx, yy);
+                    
+                    left_bmp.SetPixel(xx, yy, temp_color);
+                }
+            }
+
+            pictureBox1.Image = left_bmp;
+            pictureBox1.Refresh();
+        }
+
+        public void revert_image()
+        {
             has_converted = 0;
             label6.Text = "Loaded";
+
+            label21.Text = "?";
+            label22.Text = "?";
 
             // copy again, from revert to work
             Rectangle copyRect = new Rectangle(0, 0, image_width, image_height);
@@ -1286,27 +1474,10 @@ namespace NESIFIER
             }
 
             Color temp_color = Color.Black;
-            // copy pixel by pixel, work to left
-            for (int xx = 0; xx < MAX_WIDTH; xx++)
-            {
-                for (int yy = 0; yy < MAX_HEIGHT; yy++)
-                {
-                    if ((xx < image_width) && (yy < image_height))
-                    {
-                        temp_color = work_bmp.GetPixel(xx, yy);
-                    }
-                    else
-                    {
-                        temp_color = Color.Gray;
-                    }
-                    left_bmp.SetPixel(xx, yy, temp_color);
-                }
-            }
 
-            pictureBox1.Image = left_bmp;
-            pictureBox1.Refresh();
+            Adjust_BMP();
 
-            label3.Focus();
+            Copy_2_Picbox();
         }
 
         private void button8_Click(object sender, EventArgs e)
@@ -1319,12 +1490,15 @@ namespace NESIFIER
             has_converted = 0;
             label6.Text = "Loaded";
 
+            label21.Text = "?";
+            label22.Text = "?";
+
             // blank the left
             for (int xx = 0; xx < MAX_WIDTH; xx++)
             {
                 for (int yy = 0; yy < MAX_HEIGHT; yy++)
                 {
-                    left_bmp.SetPixel(xx, yy, Color.Gray);
+                    left_bmp.SetPixel(xx, yy, Color.Black);
                 }
             }
 
@@ -1338,12 +1512,28 @@ namespace NESIFIER
                 for (int x = 0; x < image_width; x++)
                 {
                     tempcolor = work_bmp.GetPixel(x, y);
-                    redf = tempcolor.R;
-                    greenf = tempcolor.G;
-                    bluef = tempcolor.B;
+
+                    // brightness adjust
+
+                    int red = tempcolor.R;
+                    int green = tempcolor.G;
+                    int blue = tempcolor.B;
+                    red += bright_adj;
+                    red = Math.Max(0, red); // clamp min max
+                    red = Math.Min(255, red);
+                    green += bright_adj;
+                    green = Math.Max(0, green); // clamp min max
+                    green = Math.Min(255, green);
+                    blue += bright_adj;
+                    blue = Math.Max(0, blue); // clamp min max
+                    blue = Math.Min(255, blue);
+
+                    redf = red;
+                    greenf = green;
+                    bluef = blue;
                     total = (int)((0.3 * redf) + (0.59 * greenf) + (0.11 * bluef));
                     tempcolor = Color.FromArgb(total, total, total);
-                    work_bmp.SetPixel(x, y, tempcolor);
+                    bright_bmp.SetPixel(x, y, tempcolor);
                     left_bmp.SetPixel(x, y, tempcolor); // copy to both
                 }
             }
@@ -1370,6 +1560,17 @@ namespace NESIFIER
         }
 
 
+        public void blank_left_BMP()
+        {
+            for(int y = 0; y < MAX_HEIGHT; y++)
+            {
+                for (int x = 0; x < MAX_WIDTH; x++)
+                {
+                    left_bmp.SetPixel(x, y, Color.Black);
+                }
+            }
+        }
+
         public void paste_clipboard()
         {
             IDataObject myClip = Clipboard.GetDataObject();
@@ -1394,6 +1595,10 @@ namespace NESIFIER
                 has_loaded = 1;
                 has_converted = 0;
 
+                bright_adj = 0;
+                contrast_adj = 0;
+                textBox4.Text = "0";
+                textBox5.Text = "0";
 
                 float ratio1 = 1.0F;
                 float ratio2 = 1.0F;
@@ -1467,35 +1672,31 @@ namespace NESIFIER
                     g2.DrawImage(work_bmp, copyRect2, copyRect2, GraphicsUnit.Pixel);
                 }
 
-                Color temp_color = Color.Black;
 
-                // copy pixel by pixel
-                for (int xx = 0; xx < MAX_WIDTH; xx++)
+                // round down to nearest 8 ?
+                remember_width = image_width;
+                remember_height = image_height;
+                if (checkBox3.Checked == true)
                 {
-                    for (int yy = 0; yy < MAX_HEIGHT; yy++)
-                    {
-                        if ((xx < image_width) && (yy < image_height))
-                        {
-                            temp_color = work_bmp.GetPixel(xx, yy);
-                        }
-                        else
-                        {
-                            temp_color = Color.Gray;
-                        }
-                        left_bmp.SetPixel(xx, yy, temp_color);
-                    }
+                    image_width = image_width & 0xfff8;
+                    image_height = image_height & 0xfff8;
                 }
 
 
-                // show in picture box
-                pictureBox1.Image = left_bmp;
-                pictureBox1.Refresh();
+                blank_left_BMP();
+
+                Adjust_BMP(); // bright adjust
+
+                Copy_2_Picbox();
+
 
                 // show the width and height
                 label4.Text = image_width.ToString();
                 label26.Text = image_height.ToString();
 
                 label6.Text = "Loaded";
+                label21.Text = "?";
+                label22.Text = "?";
                 temp_bmp.Dispose();
             }
             else
@@ -1538,7 +1739,7 @@ namespace NESIFIER
             {
                 for (int xx = 0; xx < image_width; xx++)
                 {
-                    tempcolor = work_bmp.GetPixel(xx, yy);
+                    tempcolor = bright_bmp.GetPixel(xx, yy);
 
                     tempcolor = ToNES(tempcolor, -1);
 
@@ -1556,7 +1757,7 @@ namespace NESIFIER
                 if (Count_Array[i] != 0) color_count++;
             }
 
-            label7.Text = color_count.ToString(); // print, how many colors
+            //label7.Text = color_count.ToString(); // print, how many colors
 
 
             // then reduce to 4 colors, using a plain merge
@@ -1614,7 +1815,7 @@ namespace NESIFIER
                 color_count2--;
 
             }
-            label8.Text = color_count2.ToString(); // print, final # colors (4)
+            //label8.Text = color_count2.ToString(); // print, final # colors (4)
 
             // find the 4 colors
             
@@ -1651,7 +1852,7 @@ namespace NESIFIER
 
 
             // reorder white so it is at the bottom (right)
-            if (color1.ToArgb() == Color.White.ToArgb() )
+            /*if (color1.ToArgb() == Color.White.ToArgb() )
             {
                 tempcolor = color1; // white
                 color1 = color2;
@@ -1671,6 +1872,59 @@ namespace NESIFIER
                 tempcolor = color3; // white
                 color3 = color4;
                 color4 = tempcolor;
+            }*/
+
+
+            // order them dark to light
+
+            int test_val1, test_val2;
+            test_val1 = color1.R + color1.B + color1.G;
+            test_val2 = color2.R + color2.B + color2.G;
+            if(test_val1 > test_val2)
+            {
+                tempcolor = color1;
+                color1 = color2;
+                color2 = tempcolor;
+            }
+            test_val1 = color1.R + color1.B + color1.G;
+            test_val2 = color3.R + color3.B + color3.G;
+            if (test_val1 > test_val2)
+            {
+                tempcolor = color1;
+                color1 = color3;
+                color3 = tempcolor;
+            }
+            test_val1 = color1.R + color1.B + color1.G;
+            test_val2 = color4.R + color4.B + color4.G;
+            if (test_val1 > test_val2)
+            {
+                tempcolor = color1;
+                color1 = color4;
+                color4 = tempcolor;
+            }
+            test_val1 = color2.R + color2.B + color2.G;
+            test_val2 = color3.R + color3.B + color3.G;
+            if (test_val1 > test_val2)
+            {
+                tempcolor = color2;
+                color2 = color3;
+                color3 = tempcolor;
+            }
+            test_val1 = color2.R + color2.B + color2.G;
+            test_val2 = color4.R + color4.B + color4.G;
+            if (test_val1 > test_val2)
+            {
+                tempcolor = color2;
+                color2 = color4;
+                color4 = tempcolor;
+            }
+            test_val1 = color3.R + color3.B + color3.G;
+            test_val2 = color4.R + color4.B + color4.G;
+            if (test_val1 > test_val2)
+            {
+                tempcolor = color3;
+                color3 = color4;
+                color4 = tempcolor;
             }
 
 
@@ -1681,12 +1935,14 @@ namespace NESIFIER
                 pictureBox7.BackColor = color5;
                 sel_color = color5; // remember_index;
                 sel_color_val = remember_index;
-                label14.Text = sel_color.R.ToString() + ", " +
+                /*label14.Text = sel_color.R.ToString() + ", " +
                     sel_color.G.ToString() + ", " +
-                    sel_color.B.ToString();
+                    sel_color.B.ToString();*/
                 string nes_str = GetNesVal(remember_index);
                 label13.Text = nes_str;
             }
+
+            do_convert();
 
             label3.Focus();
         }
@@ -1700,43 +1956,43 @@ namespace NESIFIER
             label9.Text = nes_str;
             color1val = remember_index;
 
-            if (color_count == 1) goto End1;
+            //if (color_count == 1) goto End1;
 
             Color tempcolor = color2;
             color2 = ToNES(color2, -1);
             if(color1 == color2)
-            { // bug fix
+            { // bug fix, and also gives us more colors
                 color2 = ToNES(tempcolor, remember_index);
             }
             nes_str = GetNesVal(remember_index);
             label10.Text = nes_str;
             color2val = remember_index;
 
-            if (color_count == 2) goto End1;
+            //if (color_count == 2) goto End1;
 
             tempcolor = color3;
             color3 = ToNES(color3, -1);
             if ((color1 == color3) || (color2 == color3))
-            { // bug fix
+            { // bug fix, and also gives us more colors
                 color3 = ToNES(tempcolor, remember_index);
             }
             nes_str = GetNesVal(remember_index);
             label11.Text = nes_str;
             color3val = remember_index;
 
-            if (color_count == 3) goto End1;
+            //if (color_count == 3) goto End1;
 
             tempcolor = color4;
             color4 = ToNES(color4, -1);
             if ((color1 == color4) || (color2 == color4) || (color3 == color4))
-            { // bug fix
+            { // bug fix, and also gives us more colors
                 color4 = ToNES(tempcolor, remember_index);
             }
             nes_str = GetNesVal(remember_index);
             label12.Text = nes_str;
             color4val = remember_index;
 
-            End1:
+            //End1:
 
             // copy to the boxes
             pictureBox3.BackColor = color1;
@@ -1745,7 +2001,7 @@ namespace NESIFIER
             pictureBox6.BackColor = color4;
 
             // print the RGB
-            label15.Text = color1.R.ToString() + ", " +
+            /*label15.Text = color1.R.ToString() + ", " +
                 color1.G.ToString() + ", " +
                 color1.B.ToString();
             label16.Text = color2.R.ToString() + ", " +
@@ -1756,7 +2012,7 @@ namespace NESIFIER
                 color3.B.ToString();
             label18.Text = color4.R.ToString() + ", " +
                 color4.G.ToString() + ", " +
-                color4.B.ToString();
+                color4.B.ToString();*/
         }
 
 
@@ -1764,11 +2020,11 @@ namespace NESIFIER
         { // dither factor
             if (e.KeyChar == (char)Keys.Return)
             {
-                dither_factor_set();
+                //dither_factor_set();
 
                 e.Handled = true; // prevent ding on return press
 
-                label3.Focus();
+                label3.Focus(); // this calls the leave function
             }
         }
 
@@ -1794,6 +2050,8 @@ namespace NESIFIER
                 // revert back to previous
                 textBox1.Text = dither_factor.ToString();
             }
+
+            reconvert();
         }
 
         private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
@@ -2063,6 +2321,515 @@ namespace NESIFIER
             // they weren't firing on menu click events
         }
 
+
+
+        public void colors_are_hard(int col_1, int col_2, int col_3, int col_4)
+        {
+            // in values are 4 NES palette #s 0-3f
+            //converts it, and puts it in color1, color2, etc.
+
+            color1val = NEStoPaletteIndex(col_1);
+            int index = color1val * 3;
+            int red = NES_PALETTE[index];
+            index++;
+            int green = NES_PALETTE[index];
+            index++;
+            int blue = NES_PALETTE[index];
+            color1 = Color.FromArgb(red, green, blue);
+
+            color2val = NEStoPaletteIndex(col_2);
+            index = color2val * 3;
+            red = NES_PALETTE[index];
+            index++;
+            green = NES_PALETTE[index];
+            index++;
+            blue = NES_PALETTE[index];
+            color2 = Color.FromArgb(red, green, blue);
+
+            color3val = NEStoPaletteIndex(col_3);
+            index = color3val * 3;
+            red = NES_PALETTE[index];
+            index++;
+            green = NES_PALETTE[index];
+            index++;
+            blue = NES_PALETTE[index];
+            color3 = Color.FromArgb(red, green, blue);
+
+            color4val = NEStoPaletteIndex(col_4);
+            index = color4val * 3;
+            red = NES_PALETTE[index];
+            index++;
+            green = NES_PALETTE[index];
+            index++;
+            blue = NES_PALETTE[index];
+            color4 = Color.FromArgb(red, green, blue);
+
+            //DRY_Palette();
+            string nes_str = GetNesVal(color1val);
+            label9.Text = nes_str;
+            nes_str = GetNesVal(color2val);
+            label10.Text = nes_str;
+            nes_str = GetNesVal(color3val);
+            label11.Text = nes_str;
+            nes_str = GetNesVal(color4val);
+            label12.Text = nes_str;
+
+            // copy to the boxes
+            pictureBox3.BackColor = color1;
+            pictureBox4.BackColor = color2;
+            pictureBox5.BackColor = color3;
+            pictureBox6.BackColor = color4;
+
+            // print the RGB
+            /*label15.Text = color1.R.ToString() + ", " +
+                color1.G.ToString() + ", " +
+                color1.B.ToString();
+            label16.Text = color2.R.ToString() + ", " +
+                color2.G.ToString() + ", " +
+                color2.B.ToString();
+            label17.Text = color3.R.ToString() + ", " +
+                color3.G.ToString() + ", " +
+                color3.B.ToString();
+            label18.Text = color4.R.ToString() + ", " +
+                color4.G.ToString() + ", " +
+                color4.B.ToString();*/
+
+        }
+        private void blueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x02, 0x12, 0x22, 0x32);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void purpleToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x04, 0x13, 0x23, 0x33);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void pinkToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x05, 0x15, 0x25, 0x35);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void redToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x06, 0x16, 0x26, 0x36);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void yellowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x07, 0x17, 0x27, 0x37);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void greenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x09, 0x19, 0x29, 0x39);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void oceanToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x0c, 0x1c, 0x2c, 0x3c);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void blue2ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x02, 0x13, 0x24, 0x36);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void purple2ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x04, 0x15, 0x26, 0x37);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void fireToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x07, 0x16, 0x27, 0x36);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void forestToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x07, 0x18, 0x29, 0x39);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void mintToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x0b, 0x1b, 0x2a, 0x39);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void deepBlueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x0f, 0x0c, 0x1c, 0x22);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void moodyToolStripMenuItem_Click(object sender, EventArgs e)
+        { // blue purple
+            colors_are_hard(0x04, 0x13, 0x22, 0x30);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        /*private void grellowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x06, 0x19, 0x28, 0x30);
+
+            do_convert();
+
+            label3.Focus();
+        }*/
+
+        private void grayToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x0f, 0x00, 0x10, 0x30);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void textBox4_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Return)
+            {
+                //brightness_adjust();
+
+                e.Handled = true; // prevent ding on return press
+
+                label3.Focus(); // this calls the leave function
+            }
+        }
+
+        private void textBox4_Leave(object sender, EventArgs e)
+        {
+            brightness_adjust();
+            label3.Focus();
+        }
+
+        public void brightness_adjust()
+        {
+            string str = textBox4.Text;
+            int outvar = 0;
+            if (int.TryParse(str, out outvar))
+            {
+                if (outvar > 125) outvar = 125;
+                if (outvar < -125) outvar = -125;
+                bright_adj = outvar;
+                textBox4.Text = outvar.ToString();
+            }
+            else
+            {
+                // revert back to previous
+                textBox4.Text = bright_adj.ToString();
+            }
+
+            Adjust_BMP();
+            reconvert();
+
+            if ((has_loaded != 0) && (has_converted == 0))
+            {
+                revert_image(); // will redraw the image with the new brightness
+            }
+        }
+
+
+        private void textBox5_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Return)
+            {
+                //brightness_adjust();
+
+                e.Handled = true; // prevent ding on return press
+
+                label3.Focus(); // this calls the leave function
+            }
+        }
+
+        private void textBox5_Leave(object sender, EventArgs e)
+        {
+            contrast_adjust();
+            label3.Focus();
+        }
+
+        public void contrast_adjust()
+        {
+            string str = textBox5.Text;
+            int outvar = 0;
+            if (int.TryParse(str, out outvar))
+            {
+                if (outvar > 200) outvar = 200;
+                if (outvar < -95) outvar = -95;
+                contrast_adj = outvar;
+                textBox5.Text = outvar.ToString();
+            }
+            else
+            {
+                // revert back to previous
+                textBox5.Text = contrast_adj.ToString();
+            }
+
+            Adjust_BMP();
+            reconvert();
+
+            if ((has_loaded != 0) && (has_converted == 0))
+            {
+                revert_image(); // will redraw the image with the new brightness
+            }
+        }
+
+
+
+        private void whiteStripesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x0f, 0x16, 0x0f, 0x30);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void sMonitorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            colors_are_hard(0x0f, 0x0f, 0x29, 0x0f);
+
+            do_convert();
+
+            label3.Focus();
+        }
+
+        private void save8bitIndexedBMPToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // this is a specific thing that NES Screen Tool uses for imports
+            // a Bitmap file, 8-bit, with indexed color (4 color)
+
+            if (has_loaded == 0)
+            {
+                MessageBox.Show("No image loaded.");
+                label3.Focus();
+                return;
+            }
+            if (has_converted == 0)
+            {
+                MessageBox.Show("Image hasn't converted yet.");
+                label3.Focus();
+                return;
+            }
+
+            //conv_bmp no... use...
+            //Out_Array[(yy * 256) + xx] = remember_index;
+
+
+            // open dialogue
+            // save file
+
+            int image_width2 = (image_width + 15) & 0xfff0; // round up to nearest 16
+            int image_height2 = (image_height + 15) & 0xfff0; // round up to nearest 16
+            if (image_width2 < 32) image_width2 = 32; // just double checking max/min
+            if (image_height2 < 32) image_height2 = 32;
+            if (image_width2 > 256) image_width2 = 256;
+            if (image_height2 > 256) image_height2 = 256;
+
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "bmp File (*.bmp)|*.bmp|All files (*.*)|*.*";
+            saveFileDialog1.Title = "Save the CHR";
+            saveFileDialog1.ShowDialog();
+
+            if (saveFileDialog1.FileName != "")
+            {
+                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+
+                int img_size = image_width2 * image_height2;
+                int file_size = img_size + 0x436;
+
+                // write the header
+                fs.WriteByte(0x42); // B
+                fs.WriteByte(0x4d); // M
+
+                fs.WriteByte((byte)file_size); // 4 bytes file size
+                fs.WriteByte((byte)(file_size >> 8));
+                fs.WriteByte((byte)(file_size >> 16));
+                fs.WriteByte((byte)(file_size >> 24));
+
+                fs.WriteByte(0); // 4 bytes, reserved, zero is fine
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                fs.WriteByte(0x36); // 4 bytes - offset of bitmap data
+                fs.WriteByte(4); // should be 0x436
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                fs.WriteByte(0x28); // 4 bytes - info header size
+                fs.WriteByte(0); // 0x0e + 0x28 = 0x36, the palette
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                fs.WriteByte((byte)image_width2); // 4 bytes image width
+                fs.WriteByte((byte)(image_width2 >> 8));
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+                fs.WriteByte((byte)image_height2); // 4 bytes image height
+                fs.WriteByte((byte)(image_height2 >> 8));
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                fs.WriteByte(1); // 2 bytes number of planes
+                fs.WriteByte(0);
+                fs.WriteByte(8); // 2 bytes number of bits per pixel
+                fs.WriteByte(0); //    8 bit = 256 color, indexed
+                fs.WriteByte(0); // 4 bytes, compression = none
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                // 4 bytes image size (width * height)
+                fs.WriteByte((byte)img_size); // image size, can be zero, if no compression
+                fs.WriteByte((byte)(img_size >> 8));
+                fs.WriteByte((byte)(img_size >> 16));
+                fs.WriteByte(0);
+
+                fs.WriteByte(0x12); // 4 byte - x pixels per meter
+                fs.WriteByte(0x0b);
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+                fs.WriteByte(0x12); // 4 byte - y pixels per meter
+                fs.WriteByte(0x0b);
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                fs.WriteByte(0); // 4 byte - # colors in palette
+                fs.WriteByte(1); // expected to be 0x100 for 8 bit
+                fs.WriteByte(0);
+                fs.WriteByte(0);
+
+                fs.WriteByte(0); // 4 byte - # important colors in palette
+                fs.WriteByte(0); // 0 is acceptable
+                fs.WriteByte(0); 
+                fs.WriteByte(0);
+
+                //offset 0x36 --- 4 color palette, then all zero
+                // R,G,B,0
+                fs.WriteByte((byte)color1.B);
+                fs.WriteByte((byte)color1.G);
+                fs.WriteByte((byte)color1.R);
+                fs.WriteByte(0);
+
+                fs.WriteByte((byte)color2.B);
+                fs.WriteByte((byte)color2.G);
+                fs.WriteByte((byte)color2.R);
+                fs.WriteByte(0);
+
+                fs.WriteByte((byte)color3.B);
+                fs.WriteByte((byte)color3.G);
+                fs.WriteByte((byte)color3.R);
+                fs.WriteByte(0);
+
+                fs.WriteByte((byte)color4.B);
+                fs.WriteByte((byte)color4.G);
+                fs.WriteByte((byte)color4.R);
+                fs.WriteByte(0);
+
+                for(int i = 0; i < 252; i++)
+                {
+                    fs.WriteByte(0); // pad zero for the rest of the palette
+                    fs.WriteByte(0);
+                    fs.WriteByte(0);
+                    fs.WriteByte(0);
+                }
+
+                // offset 0x436
+
+                for (int yy = image_height2 - 1; yy >= 0; yy--) // reverse order
+                {
+                    for(int xx = 0; xx < image_width2; xx++)
+                    {
+                        fs.WriteByte((byte)Out_Array[(yy * 256) + xx]);
+                    }
+                }
+
+                fs.Close();
+            }
+
+            label3.Focus();
+        }
+
+        private void checkBox3_Click(object sender, EventArgs e)
+        { // round down to nearest 8
+            if (has_loaded == 0)
+            {
+                label3.Focus();
+                return;
+            }
+
+            if (checkBox3.Checked == true)
+            {
+                image_width = image_width & 0xfff8;
+                image_height = image_height & 0xfff8;
+            }
+            else
+            {
+                image_width = remember_width;
+                image_height = remember_height;
+            }
+
+            blank_left_BMP();
+            revert_image();
+
+            label3.Focus();
+        }
+
         private void textBox2_Leave(object sender, EventArgs e)
         {
             u_width_set();
@@ -2092,6 +2859,8 @@ namespace NESIFIER
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
+            reconvert();
+            
             label3.Focus();
         }
 
@@ -2190,9 +2959,9 @@ namespace NESIFIER
             sel_color = tempcolor;
             pictureBox7.BackColor = sel_color;
             sel_color_val = remember_index;
-            label14.Text = sel_color.R.ToString() + ", " +
+            /*label14.Text = sel_color.R.ToString() + ", " +
                 sel_color.G.ToString() + ", " +
-                sel_color.B.ToString();
+                sel_color.B.ToString();*/
 
             string nes_str = GetNesVal(remember_index);
             label13.Text = nes_str;
@@ -2278,6 +3047,7 @@ namespace NESIFIER
                 dR = tempcolor.R - NES_PALETTE[rr];
                 dG = tempcolor.G - NES_PALETTE[gg];
                 dB = tempcolor.B - NES_PALETTE[bb];
+
                 // note, the formula is supposed to take the Math.Sqrt()
                 // of this but that step has been removed as unneeded.
                 color_diff = ((dR * dR) + (dG * dG) + (dB * dB));
@@ -2324,6 +3094,11 @@ namespace NESIFIER
 
                     has_loaded = 1;
                     has_converted = 0;
+
+                    bright_adj = 0;
+                    contrast_adj = 0;
+                    textBox4.Text = "0";
+                    textBox5.Text = "0";
 
                     float ratio1 = 1.0F;
                     float ratio2 = 1.0F;
@@ -2396,36 +3171,30 @@ namespace NESIFIER
                         g2.DrawImage(work_bmp, copyRect2, copyRect2, GraphicsUnit.Pixel);
                     }
 
-                    Color temp_color = Color.Black;
+                    //Color temp_color = Color.Black;
 
-                    // copy pixel by pixel
-                    for (int xx = 0; xx < MAX_WIDTH; xx++)
+                    // round down to nearest 8 ?
+                    remember_width = image_width;
+                    remember_height = image_height;
+                    if (checkBox3.Checked == true)
                     {
-                        for (int yy = 0; yy < MAX_HEIGHT; yy++)
-                        {
-                            if((xx < image_width) && (yy < image_height))
-                            {
-                                temp_color = work_bmp.GetPixel(xx, yy);
-                            }
-                            else
-                            {
-                                temp_color = Color.Gray;
-                            }
-                            left_bmp.SetPixel(xx, yy, temp_color);
-                        }
+                        image_width = image_width & 0xfff8;
+                        image_height = image_height & 0xfff8;
                     }
 
+                    blank_left_BMP();
 
-                    // show in picture box
-                    pictureBox1.Image = left_bmp;
-                    pictureBox1.Refresh();
+                    Adjust_BMP();
+
+                    Copy_2_Picbox();
 
                     // show the width and height
                     label4.Text = image_width.ToString();
                     label26.Text = image_height.ToString();
 
                     label6.Text = "Loaded";
-
+                    label21.Text = "?";
+                    label22.Text = "?";
                     temp_bmp.Dispose();
                 }
                 // it was locking up files, so...

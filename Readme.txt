@@ -1,6 +1,13 @@
 NESIFIER
-(c) Doug Fraker, 2021
+(c) Doug Fraker, 2021-2023
 
+updates
+2.1 - added preset colors
+    - added brightness and contrast adjustments
+    - auto-convert on most changes
+2.2 - added 8-bit indexed BMP export, for
+      use with NES Screen Tool
+    - added checkbox to round down to nearest 8
 
 This is an image processing tool for nesdev (NES game development).
 
@@ -95,6 +102,22 @@ selected color box.
 You might get better results just clicking grayscale, converting
 the image, and then move the files over to NES screen tool,
 before giving it a color palette.
+
+
+
+Save as 8-bit indexed BMP - if you converted to NES 4 color,
+but you have too many unique tiles... use this option, and
+then import it into NES Screen Tool as a BMP, and use the
+lossy option to reduce the tile count to 256.
+
+
+Different dither styles will have different # of unique tiles.
+Floyd-Steinberg should produce the best looking image,
+because it's the only one that does error diffusion... but
+at the cost of much higher tile count. No dithering is the
+least amount of unique tiles.
+
+I personally prefer the Bayer 8x8 between levels 7 and 10.
 
 
 Credit: 
