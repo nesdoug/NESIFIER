@@ -1606,6 +1606,15 @@ namespace NESIFIER
                 int resize_height = user_height;
                 int need_resize = 0;
 
+                // clear it
+                for (int y = 0; y < MAX_HEIGHT; y++)
+                {
+                    for (int x = 0; x < MAX_WIDTH; x++)
+                    {
+                        work_bmp.SetPixel(x, y, Color.Black);
+                    }
+                }
+
                 if (temp_bmp.Width > user_width)
                 {
                     image_width = user_width;
@@ -3105,6 +3114,15 @@ namespace NESIFIER
                     int resize_width = user_width;//MAX_WIDTH;
                     int resize_height = user_height;//MAX_HEIGHT;
                     int need_resize = 0;
+
+                    // clear it
+                    for(int y = 0; y < MAX_HEIGHT; y++)
+                    {
+                        for (int x = 0; x < MAX_WIDTH; x++)
+                        {
+                            work_bmp.SetPixel(x, y, Color.Black);
+                        }
+                    }
 
                     // replaced MAX_WIDTH with user_width
                     if (temp_bmp.Width > user_width)

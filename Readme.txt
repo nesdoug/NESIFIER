@@ -1,5 +1,7 @@
-NESIFIER
+NESIFIER - a 4 color NES image converter
 (c) Doug Fraker, 2021-2023
+
+.NET 4.5.2 (works with MONO on non-Windows systems)
 
 updates
 2.1 - added preset colors
@@ -8,6 +10,8 @@ updates
 2.2 - added 8-bit indexed BMP export, for
       use with NES Screen Tool
     - added checkbox to round down to nearest 8
+2.3 - issue with loading images with transparency
+      now blanks to black before loading.
 
 This is an image processing tool for nesdev (NES game development).
 
